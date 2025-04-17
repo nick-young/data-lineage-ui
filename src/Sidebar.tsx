@@ -359,7 +359,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick={() => onLayoutClick('LR')}
           style={secondarySidebarButtonStyle}
         >
-          Layout
+          Layout Nodes
         </button>
       </div>
 

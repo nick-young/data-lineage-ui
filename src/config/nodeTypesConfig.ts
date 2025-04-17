@@ -28,7 +28,7 @@ export const entityConfig: EntityConfig[] = [
     types: [
       {
         name: 'MySQL', 
-        iconUrl: `${iconBasePath}service-icon-mysql.png`, // Assuming mysql icon exists
+        iconUrl: `${iconBasePath}service-icon-sql.png`, // Assuming mysql icon exists
         subTypes: [{ name: 'Table' }, { name: 'View' }],
       },
       {
@@ -44,7 +44,7 @@ export const entityConfig: EntityConfig[] = [
       // Add other database types (Postgres, Oracle, etc.) here
       {
         name: 'Other Database', // Fallback
-        iconUrl: `${iconBasePath}service-icon-sql.png`,
+        iconUrl: `${iconBasePath}service-icon-generic.png`,
         subTypes: [{ name: 'Table' }, { name: 'View' }, { name: 'Procedure' }, { name: 'Function' }],
       }
     ]

@@ -27,9 +27,11 @@ interface NodeData {
 // --- Styling Constants ---
 
 const NODE_BORDER_COLOR = '#E0E0E0'; // Lighter grey border
+const NODE_BORDER_COLOR_SELECTED = '#0950c5'; // Use primary blue for selected border
 const NODE_BACKGROUND = '#FFFFFF';
 const NODE_BORDER_RADIUS = '6px'; // Slightly more rounded
 const NODE_SHADOW = '0 1px 3px rgba(0,0,0,0.05)'; // Subtle shadow
+const NODE_SHADOW_SELECTED = '0 3px 8px rgba(0,0,0,0.15)'; // Stronger shadow when selected
 const TEXT_COLOR_NORMAL = '#333333';
 const TEXT_COLOR_FADED = '#757575'; // Grey for context text
 const HANDLE_SIZE = '10px';
@@ -48,6 +50,7 @@ const nodeWrapperStyle: React.CSSProperties = {
   alignItems: 'center', // Vertically center icon and text block
   gap: '10px', // Space between icon and text block
   minWidth: '180px', // Ensure minimum width
+  transition: 'border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out', // Add transition
 };
 
 // Icon style
@@ -104,29 +107,42 @@ const subTypeTextStyle: React.CSSProperties = {
 // --- Component Logic ---
 
 // The Custom Node Component
-const CustomNode: React.FC<NodeProps<NodeData>> = ({ data }) => {
+const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, selected }) => {
   // Get icon based on Entity and Type from config
   const iconUrl = getIconForType(data.entity, data.type);
-  // Use Entity as the context text
-  const contextText = data.entity; 
+  // Construct context text as "Entity: Type"
+  const contextText = `${data.entity}: ${data.type}`; 
+
+  // Dynamically adjust style based on selection state
+  const nodeWrapperStyle: React.CSSProperties = {
+    background: NODE_BACKGROUND,
+    border: `1px solid ${selected ? NODE_BORDER_COLOR_SELECTED : NODE_BORDER_COLOR}`,
+    borderRadius: NODE_BORDER_RADIUS,
+    padding: '10px 15px', 
+    boxShadow: selected ? NODE_SHADOW_SELECTED : NODE_SHADOW,
+    display: 'flex',
+    alignItems: 'center', 
+    gap: '10px', 
+    minWidth: '180px',
+    transition: 'border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out', // Add transition
+  };
 
   return (
     <div style={nodeWrapperStyle}>
       {/* Input handle */}
       <Handle type="target" position={Position.Left} style={handleStyle} />
 
-      {/* Icon - Use URL from config based on Type */}
+      {/* Icon */}
       <img src={iconUrl} alt={data.type || 'Node'} style={iconStyle} />
 
       {/* Text Container */}
       <div style={textContainerStyle}>
-        {/* Context Line (Top) - Use Entity */}
+        {/* Context Line (Top) - Show "Entity: Type" */}
         <span style={contextTextStyle}>{contextText}</span>
         
         {/* Label Line (Bottom) - Include SubType if applicable */}
         <div style={{ display: 'flex', alignItems: 'baseline' }}> 
           <span style={labelTextStyle}>{data.label}</span>
-          {/* Display subType if it exists */}
           {data.subType && (
             <span style={subTypeTextStyle}>({data.subType})</span>
           )}

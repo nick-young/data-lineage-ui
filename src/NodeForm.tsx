@@ -7,12 +7,26 @@ import {
   getSubTypesForType 
 } from './config/nodeTypesConfig';
 
-// Updated form data interface
+// Import NodeData type from App or define it consistently
+// Assuming NodeData might be defined elsewhere or we redefine relevant part
+interface NodeDataForForm {
+  label: string;
+  entity: string; 
+  type: string;   
+  subType?: string; 
+  domain?: string; // Make optional to match NodeData
+  owner?: string;  // Make optional to match NodeData
+  description?: string; // Make optional to match NodeData
+  transformations?: string; // Make optional to match NodeData
+  filters?: string; // Make optional to match NodeData
+}
+
+// Form data structure (still requires string for inputs)
 interface NodeFormData {
   label: string;
-  entity: string; // Renamed from type
-  type: string;   // New field for specific technology
-  subType?: string; // Optional specific object type
+  entity: string; 
+  type: string;   
+  subType?: string; 
   domain: string;
   owner: string;
   description: string;
@@ -20,9 +34,9 @@ interface NodeFormData {
   filters: string;
 }
 
-// NodeForm Props - Add initialData and isEditing
+// NodeForm Props - Accept NodeDataForForm (or NodeData directly if imported)
 interface NodeFormProps {
-  initialData?: NodeFormData | null; // Make initialData compatible
+  initialData?: NodeDataForForm | null; 
   isEditing: boolean;
   onSubmit: (data: NodeFormData) => void;
   onCancel: () => void;
@@ -140,7 +154,7 @@ const buttonBaseStyle: React.CSSProperties = {
 const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, onCancel }) => {
   const entityNames = getEntityNames();
   
-  // Initialize state based on initialData or defaults
+  // Initialize state based on initialData or defaults, handling potential undefined
   const [selectedEntity, setSelectedEntity] = useState<string>(initialData?.entity || entityNames[0] || '');
   const [selectedType, setSelectedType] = useState<string>(initialData?.type || '');
   const [selectedSubType, setSelectedSubType] = useState<string>(initialData?.subType || '');
@@ -148,13 +162,14 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [availableSubTypes, setAvailableSubTypes] = useState<string[]>([]);
 
+  // Handle potential undefined from initialData with fallback to empty string
   const [otherFormData, setOtherFormData] = useState({
-    label: initialData?.label || '',
-    domain: initialData?.domain || '',
-    owner: initialData?.owner || '',
-    description: initialData?.description || '',
-    transformations: initialData?.transformations || '',
-    filters: initialData?.filters || '',
+    label: initialData?.label ?? '',
+    domain: initialData?.domain ?? '',
+    owner: initialData?.owner ?? '',
+    description: initialData?.description ?? '',
+    transformations: initialData?.transformations ?? '',
+    filters: initialData?.filters ?? '',
   });
 
   // Effect to update Type options when Entity changes (or on initial load)
@@ -208,10 +223,17 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    // Ensure all fields sent to onSubmit are strings as expected by NodeFormData
     const finalData: NodeFormData = {
-      ...otherFormData, 
+      label: otherFormData.label,
       entity: selectedEntity,
       type: selectedType,
+      domain: otherFormData.domain, // Already string
+      owner: otherFormData.owner, // Already string
+      description: otherFormData.description, // Already string
+      transformations: otherFormData.transformations, // Already string
+      filters: otherFormData.filters, // Already string
+      // Only include subType if it was available and selected
       ...(availableSubTypes.length > 0 && { subType: selectedSubType }), 
     };
     onSubmit(finalData);

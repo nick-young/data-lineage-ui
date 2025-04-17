@@ -140,10 +140,10 @@ const EDGE_COLOR = '#adb5bd'; // Light grey for edges
 const BACKGROUND_COLOR = '#f8f9fa'; // Very light grey background
 const DOT_PATTERN_COLOR = '#e0e0e0'; // Color for the dots
 
-// Default options for new edges - Changed type to bezier
+// Default options for new edges - Use 'default' for Bezier
 const defaultEdgeOptions = {
   style: { strokeWidth: 1.5, stroke: EDGE_COLOR },
-  type: 'bezier', // Use Bezier curves
+  type: 'default', // Use 'default' for Bezier curves
   markerEnd: {
     type: MarkerType.ArrowClosed,
     color: EDGE_COLOR,
@@ -222,23 +222,10 @@ function App() {
   }, [edges, selectedEdge?.id]); // Dependency includes selectedEdge ID
   // ------------------------------------------------------------------
 
-  // Handler for node click events
-  const onNodeClick: NodeMouseHandler = useCallback((event, node) => {
-    // Toggle selection: if clicking the same node, deselect; otherwise select the new node.
-    setSelectedNode((currentNode) => (currentNode?.id === node.id ? null : node));
-    setSelectedEdge(null); // Deselect edge when node is clicked
-  }, []);
-
   // Handler for edge click
   const onEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
     setSelectedEdge((currentEdge) => (currentEdge?.id === edge.id ? null : edge));
     setSelectedNode(null); // Deselect node when edge is clicked
-  }, []);
-
-  // Handler for pane click (to deselect nodes and edges)
-  const onPaneClick = useCallback(() => {
-    setSelectedNode(null);
-    setSelectedEdge(null); // Deselect edge on pane click
   }, []);
 
   // --- Form Handling ---
@@ -319,6 +306,11 @@ function App() {
     setNodes([...layoutedNodes]); 
   }, [nodes, edges, setNodes]); 
 
+  // --- New Double Click Handler ---
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+    openNodeForm(node); // Open form in edit mode for the double-clicked node
+  }, [openNodeForm]); // Dependency on the form opening function
+
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
     flexGrow: 1,
@@ -338,11 +330,13 @@ function App() {
           onEdgesChange={onEdgesChange} 
           onConnect={onConnect}       
           nodeTypes={nodeTypes} 
-          onNodeClick={onNodeClick} 
           onEdgeClick={onEdgeClick}
-          onPaneClick={onPaneClick} 
+          onNodeDoubleClick={onNodeDoubleClick} 
           fitView 
           defaultEdgeOptions={defaultEdgeOptions}
+          panOnDrag={[2]} // Enable panning only with Right mouse button
+          selectionOnDrag={true} // Enable drag selection box
+          multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
         >
           {/* Conditionally render the NodeForm, passing edit info */}
           {isFormVisible && (
