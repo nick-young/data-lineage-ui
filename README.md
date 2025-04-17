@@ -1,54 +1,51 @@
-# React + TypeScript + Vite
+# Data Lineage Visualization Tool (MVP)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This project implements a basic Minimum Viable Product (MVP) for a data lineage visualization tool, built with React, TypeScript, Vite, and React Flow.
 
-Currently, two official plugins are available:
+## Features Implemented (MVP)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+*   **Visual Graph Canvas:** Renders nodes and edges using React Flow.
+*   **Node Rendering:** Displays nodes with labels and type information using a custom node component.
+*   **Node Selection:** Allows selecting nodes to view their properties in a sidebar.
+*   **Node Creation:** Provides an "Add Node" button and a modal form to create new nodes with properties:
+    *   Name (Label)
+    *   Type (Dropdown: API, Database Table, Airflow Pipeline, Storage (S3), Kafka Topic, External System)
+    *   Domain
+    *   Owner
+    *   Description
+    *   Transformations
+    *   Filters
+*   **Edge Creation:** Allows connecting nodes via drag-and-drop between handles.
+*   **Relationship Details:** Allows selecting edges to view source/target information and add/edit free-text details in the sidebar.
+*   **Sidebar Display:** Shows details for the currently selected node or edge, including dynamically calculated inputs/outputs for nodes.
+*   **Local Storage Persistence:** Saves the graph state (nodes and edges, including edge details) to the browser's local storage, so the graph persists across page refreshes.
 
-## Expanding the ESLint configuration
+## Setup and Running
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1.  **Clone the repository (if you haven't already).**
+2.  **Navigate to the project directory:**
+    ```bash
+    cd data-lineage-ui
+    ```
+3.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+4.  **Run the development server:**
+    ```bash
+    npm run dev
+    ```
+5.  Open your browser and navigate to the local URL provided (usually `http://localhost:5173` or similar).
 
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
-```
+## Next Steps / Future Enhancements (From PRD)
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
-```
+*   Backend storage for persistent graphs.
+*   User authentication and collaboration features.
+*   Ability to import/export lineage data.
+*   Search and filtering capabilities.
+*   Automatic lineage discovery via integrations (e.g., Airflow, dbt).
+*   Version history for graphs.
+*   More sophisticated layout algorithms.
+*   Node grouping/layering.
+*   Visual node icons.
+*   UI styling improvements (e.g., align with OpenMetadata theme).
