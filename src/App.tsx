@@ -159,7 +159,7 @@ dagreGraph.setDefaultEdgeLabel(() => ({}));
 const NODE_WIDTH = 200; // Approx width based on CustomNode style
 const NODE_HEIGHT = 70;  // Approx height based on CustomNode style
 
-const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
   dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
 
   nodes.forEach((node) => {
@@ -513,7 +513,6 @@ function App() {
         edges={edges} 
         setEdges={setEdges}
         onAddNodeClick={() => openNodeForm()}
-        onDeleteNodesClick={handleDeleteSelectedNodes}
         onSavePNG={handleSavePNG}
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}

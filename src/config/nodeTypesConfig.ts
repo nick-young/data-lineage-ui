@@ -26,6 +26,16 @@ export const entityConfig: EntityConfig[] = [
   {
     name: 'Database',
     types: [
+    {
+    name: 'Redshift',
+    iconUrl: `${iconBasePath}service-icon-redshift.png`,
+    subTypes: [{ name: 'Table' }, { name: 'View' }, { name: 'External Table' }],
+    },
+    {
+    name: 'Postgres',
+    iconUrl: `${iconBasePath}service-icon-post.png`,
+    subTypes: [{ name: 'Table' }, { name: 'View' }, { name: 'External Table' }],
+    },
       {
         name: 'MySQL', 
         iconUrl: `${iconBasePath}service-icon-sql.png`, // Assuming mysql icon exists
@@ -36,11 +46,7 @@ export const entityConfig: EntityConfig[] = [
         iconUrl: `${iconBasePath}service-icon-mssql.png`,
         subTypes: [{ name: 'Table' }, { name: 'View' }, { name: 'Procedure' }],
       },
-      {
-        name: 'Redshift',
-        iconUrl: `${iconBasePath}service-icon-redshift.png`,
-        subTypes: [{ name: 'Table' }, { name: 'View' }, { name: 'External Table' }],
-      },
+
       // Add other database types (Postgres, Oracle, etc.) here
       {
         name: 'Other Database', // Fallback
@@ -58,8 +64,16 @@ export const entityConfig: EntityConfig[] = [
         subTypes: [{ name: 'Pipeline' }, { name: 'Task' }], // Example sub-types
       },
       {
+        name: 'Talend', // Assuming generic pipeline icon
+        iconUrl: `${iconBasePath}service-icon-talend.png`, 
+      },
+      {
         name: 'Spark', // Assuming generic pipeline icon
         iconUrl: `${iconBasePath}service-icon-generic.png`, 
+      },
+      {
+        name: 'Glue', // Assuming generic pipeline icon
+        iconUrl: `${iconBasePath}service-icon-glue.png`, 
       },
       // Add other pipeline types here
     ]
@@ -72,7 +86,28 @@ export const entityConfig: EntityConfig[] = [
         iconUrl: `${iconBasePath}service-icon-kafka.png`,
         subTypes: [{ name: 'Topic' }],
       },
+      {
+        name: 'Kinesis', 
+        iconUrl: `${iconBasePath}service-icon-kinesis.png`,
+        // No specific sub-types defined for generic API
+      }
       // Add other stream types here
+    ]
+  },
+  {
+    name: 'Stream Processing',
+    types: [
+      {
+        name: 'Stream Processing Framework', 
+        iconUrl: `${iconBasePath}service-icon-flink.png`,
+        // No specific sub-types defined for generic API
+      },
+      {
+        name: 'Flink', 
+        iconUrl: `${iconBasePath}service-icon-flink.png`,
+        // No specific sub-types defined for generic API
+      },
+
     ]
   },
    {
@@ -91,6 +126,11 @@ export const entityConfig: EntityConfig[] = [
       {
         name: 'S3',
         iconUrl: `${iconBasePath}service-icon-amazon-s3.svg`,
+        subTypes: [{ name: 'Bucket' }, { name: 'Object' }, { name: 'Prefix' }], // Example sub-types
+      },
+      {
+        name: 'Iceberg',
+        iconUrl: `${iconBasePath}service-icon-iceberg.svg`,
         subTypes: [{ name: 'Bucket' }, { name: 'Object' }, { name: 'Prefix' }], // Example sub-types
       },
       // Add other storage types (GCS, Azure Blob, etc.)

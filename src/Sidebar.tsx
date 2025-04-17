@@ -25,7 +25,6 @@ interface SidebarProps {
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
   onAddNodeClick: () => void;
-  onDeleteNodesClick: () => void;
   onSavePNG: () => void;
   onSaveFlow: () => void;
   onLoadFlowTrigger: () => void;
@@ -263,7 +262,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   edges,
   setEdges,
   onAddNodeClick,
-  onDeleteNodesClick,
   onSavePNG,
   onSaveFlow,
   onLoadFlowTrigger,
@@ -517,7 +515,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* --- Separator --- */}
           <hr style={separatorStyle} />
 
-          {/* --- Bottom Controls (Delete / Save / Load) --- */}
+          {/* --- Bottom Controls (Save / Load) --- */}
           <div style={{
             ...sidebarControlsStyle, 
             borderBottom: 'none', 
@@ -527,16 +525,6 @@ const Sidebar: React.FC<SidebarProps> = ({
             paddingLeft: '10px',
             paddingRight: '10px'
           }}>
-            {/* Delete Button */}
-            {selectedNodes.length > 0 && (
-                 <button 
-                    onClick={onDeleteNodesClick}
-                    style={{...secondarySidebarButtonStyle, color: '#dc3545', borderColor: '#dc3545'}} // Make it red
-                    title={`Delete ${selectedNodes.length} selected node(s)`}
-                 >
-                    Delete Node{selectedNodes.length > 1 ? 's' : ''}
-                 </button>
-             )}
             <button 
               onClick={onSavePNG}
               style={secondarySidebarButtonStyle}
