@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState, useRef } from 'react';
 import { Node, Edge, ReactFlowState, useStore } from 'reactflow';
 
 // Define the expected data structure for the selected node
@@ -32,22 +32,43 @@ interface SidebarProps {
   onLoadFlowTrigger: () => void;
 }
 
-// Styles inspired by OM
-const sidebarStyle: React.CSSProperties = {
-  position: 'absolute',
-  right: 0,
-  top: 0,
-  width: '280px', // Slightly wider
-  height: '100%',
-  background: '#f8f9fa', // OM Body background
-  borderLeft: '1px solid #D5D7DA', // OM Border color
-  padding: '20px', // Consistent padding
+// --- Constants ---
+const SIDEBAR_WIDTH = 280; // Fixed width for now
+
+// --- Styles ---
+const sidebarStyle: React.CSSProperties = { // Simplified style
+  width: `${SIDEBAR_WIDTH}px`,
+  height: '100%', // Fill height of flex container
+  background: '#f8f9fa',
+  borderRight: '1px solid #D5D7DA',
+  padding: '20px 0',      // Corrected: No horizontal padding on main container
   boxSizing: 'border-box',
-  fontFamily: 'Inter, sans-serif', // OM Font
-  overflowY: 'auto',
-  color: '#333', 
-  fontSize: '14px', // Base font size
+  fontFamily: 'Inter, sans-serif',
+  display: 'flex',
+  flexDirection: 'column',
+  color: '#333',
+  fontSize: '14px',
+  overflow: 'hidden', // Prevent overall sidebar scroll
 };
+
+// Style for clickable section headers
+const clickableHeaderStyle: React.CSSProperties = {
+  cursor: 'pointer',
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  userSelect: 'none', // Prevent text selection on click
+  paddingBottom: '10px', // Ensure padding matches titleStyle
+  borderBottom: '1px solid #E9EAEB', // Ensure border matches titleStyle
+  marginBottom: '16px', // Ensure margin matches titleStyle
+};
+
+const arrowStyle = (isExpanded: boolean): React.CSSProperties => ({
+  fontSize: '12px', 
+  marginLeft: '8px', 
+  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+  transition: 'transform 0.2s ease-in-out',
+});
 
 const sectionStyle: React.CSSProperties = {
   marginBottom: '24px', // Increased spacing between sections
@@ -89,6 +110,7 @@ const descriptionParagraphStyle: React.CSSProperties = {
     margin: '4px 0 8px 0', 
     lineHeight: 1.5, 
     color: '#333', // Ensure standard text color
+    wordBreak: 'break-word', 
 };
 
 const listStyle: React.CSSProperties = {
@@ -100,6 +122,7 @@ const listStyle: React.CSSProperties = {
 const listItemStyle: React.CSSProperties = {
     marginBottom: '5px', // Consistent small spacing
     color: '#333', // Ensure standard text color
+    wordBreak: 'break-word',
 };
 
 const textareaStyle: React.CSSProperties = {
@@ -164,17 +187,39 @@ const secondarySidebarButtonStyle: React.CSSProperties = {
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   selectedNodes,
-  selectedEdge, 
-  nodes, 
-  edges, 
-  setEdges, 
+  selectedEdge,
+  nodes,
+  edges,
+  setEdges,
   onAddNodeClick,
   onEditNodeClick,
   onDeleteNodesClick,
   onSavePNG,
   onSaveFlow,
-  onLoadFlowTrigger
+  onLoadFlowTrigger,
 }) => {
+  
+  // REMOVED resize state/handlers
+  // const sidebarRef = useRef<HTMLDivElement>(null);
+  // const [sidebarWidth, setSidebarWidth] = useState(INITIAL_WIDTH);
+  // const [isResizing, setIsResizing] = useState(false);
+
+  // --- State for collapsible sections ---
+  const [expandedSections, setExpandedSections] = useState({
+    details: true,
+    inputs: true,
+    outputs: true,
+    description: false, // Default some to collapsed
+    transformations: false,
+    filters: false,
+    edgeDetails: true,
+    relationshipDetails: true,
+  });
+
+  // --- Toggle function ---
+  const toggleSection = (sectionName: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [sectionName]: !prev[sectionName] }));
+  };
 
   // --- Determine single selected node for details/edit --- 
   const singleSelectedNode = useMemo(() => {
@@ -222,23 +267,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   let content;
   if (singleSelectedNode && !selectedEdge) {
-    const { 
-      label = 'N/A', 
-      entity = 'N/A',
-      type = 'N/A',
-      subType,
-      domain = '-', 
-      owner = '-', 
-      description = '-', 
-      transformations = '-', 
-      filters = '-'
-    } = singleSelectedNode.data || {};
-
+    const { label = 'N/A', entity = 'N/A', type = 'N/A', subType, domain = '-', owner = '-', description = '-', transformations = '-', filters = '-'} = singleSelectedNode.data || {};
     content = (
       <>
-        <h3 style={titleStyle}>Node Details</h3>
-        
-        <div style={sectionStyle}>
+        <h3 style={{...titleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('details')}>Node Details<span style={arrowStyle(expandedSections.details)}>▶</span></h3>
+        {expandedSections.details && (
+          <div style={sectionStyle}>
             <div style={detailRowStyle}>
               <span style={labelStyle}>ID:</span> 
               <span style={valueStyle}>{singleSelectedNode.id}</span>
@@ -271,44 +305,31 @@ const Sidebar: React.FC<SidebarProps> = ({
               <span style={labelStyle}>Owner:</span> 
               <span style={valueStyle}>{owner}</span>
             </div>
-        </div>
+          </div>
+        )}
 
-        <div style={sectionStyle}>
-            <h4 style={subTitleStyle}>Inputs ({inputs.length})</h4>
-            {inputs.length > 0 ? (
-            <ul style={listStyle}>
-                {inputs.map((inputLabel, index) => <li style={listItemStyle} key={index}>{inputLabel}</li>)}
-            </ul>
-            ) : (
-            <p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>
-            )}
-        </div>
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('inputs')}>Inputs ({inputs.length})<span style={arrowStyle(expandedSections.inputs)}>▶</span></h4>
+        {expandedSections.inputs && (
+            inputs.length > 0 
+              ? (<ul style={listStyle}>{inputs.map((inputLabel, index) => <li style={listItemStyle} key={index}>{inputLabel}</li>)}</ul>) 
+              : (<p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
+        )}
         
-        <div style={sectionStyle}>
-            <h4 style={subTitleStyle}>Outputs ({outputs.length})</h4>
-            {outputs.length > 0 ? (
-            <ul style={listStyle}>
-                {outputs.map((outputLabel, index) => <li style={listItemStyle} key={index}>{outputLabel}</li>)}
-            </ul>
-            ) : (
-            <p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>
-            )}
-        </div>
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('outputs')}>Outputs ({outputs.length})<span style={arrowStyle(expandedSections.outputs)}>▶</span></h4>
+        {expandedSections.outputs && (
+            outputs.length > 0 
+              ? (<ul style={listStyle}>{outputs.map((outputLabel, index) => <li style={listItemStyle} key={index}>{outputLabel}</li>)}</ul>)
+              : (<p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
+        )}
 
-        <div style={sectionStyle}>
-            <h4 style={subTitleStyle}>Description</h4>
-            <p style={descriptionParagraphStyle}>{description}</p>
-        </div>
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('description')}>Description<span style={arrowStyle(expandedSections.description)}>▶</span></h4>
+        {expandedSections.description && <p style={descriptionParagraphStyle}>{description}</p>}
 
-        <div style={sectionStyle}>
-            <h4 style={subTitleStyle}>Transformations</h4>
-            <p style={descriptionParagraphStyle}>{transformations}</p>
-        </div>
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('transformations')}>Transformations<span style={arrowStyle(expandedSections.transformations)}>▶</span></h4>
+        {expandedSections.transformations && <p style={descriptionParagraphStyle}>{transformations}</p>}
 
-        <div style={sectionStyle}>
-            <h4 style={subTitleStyle}>Filters</h4>
-            <p style={descriptionParagraphStyle}>{filters}</p>
-        </div>
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('filters')}>Filters<span style={arrowStyle(expandedSections.filters)}>▶</span></h4>
+        {expandedSections.filters && <p style={descriptionParagraphStyle}>{filters}</p>}
       </>
     );
   } else if (selectedEdge) {
@@ -317,30 +338,32 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     content = (
       <>
-        <h3 style={titleStyle}>Relationship Details</h3>
-        <div style={sectionStyle}>
-          <div style={detailRowStyle}>
-              <span style={labelStyle}>ID:</span> 
-              <span style={valueStyle}>{selectedEdge.id}</span>
+        <h3 style={{...titleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('relationshipDetails')}>Relationship Details<span style={arrowStyle(expandedSections.relationshipDetails)}>▶</span></h3>
+        {expandedSections.relationshipDetails && (
+          <div style={sectionStyle}>
+            <div style={detailRowStyle}>
+                <span style={labelStyle}>ID:</span> 
+                <span style={valueStyle}>{selectedEdge.id}</span>
+            </div>
+             <div style={detailRowStyle}>
+                <span style={labelStyle}>Source:</span> 
+                <span style={valueStyle}>{sourceNode?.data?.label || selectedEdge.source}</span>
+            </div>
+             <div style={detailRowStyle}>
+                <span style={labelStyle}>Target:</span> 
+                <span style={valueStyle}>{targetNode?.data?.label || selectedEdge.target}</span>
+            </div>
           </div>
-           <div style={detailRowStyle}>
-              <span style={labelStyle}>Source:</span> 
-              <span style={valueStyle}>{sourceNode?.data?.label || selectedEdge.source}</span>
-          </div>
-           <div style={detailRowStyle}>
-              <span style={labelStyle}>Target:</span> 
-              <span style={valueStyle}>{targetNode?.data?.label || selectedEdge.target}</span>
-          </div>
-        </div>
-        <div style={sectionStyle}>
-          <h4 style={subTitleStyle}>Details:</h4>
+        )}
+        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('edgeDetails')}>Details<span style={arrowStyle(expandedSections.edgeDetails)}>▶</span></h4>
+        {expandedSections.edgeDetails && (
           <textarea 
             style={textareaStyle}
             value={selectedEdge.data?.details || ''}
             onChange={onEdgeDetailsChange}
             placeholder="Enter relationship details..."
           />
-        </div>
+        )}
       </>
     );
   } else if (selectedNodes.length > 1) {
@@ -363,7 +386,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div style={sidebarStyle}>
-      <div style={sidebarControlsStyle}>
+      <div style={{ ...sidebarControlsStyle, paddingLeft: '10px', paddingRight: '10px' }}>
         <button 
           onClick={onAddNodeClick}
           style={primarySidebarButtonStyle}
@@ -380,9 +403,26 @@ const Sidebar: React.FC<SidebarProps> = ({
         )}
       </div>
 
-      {content}
+      <div style={{
+        flexGrow: 1, 
+        overflowY: 'auto', 
+        overflowX: 'hidden', 
+        paddingTop: '20px',
+        paddingLeft: '10px',
+        paddingRight: '10px'
+      }}>
+        {content}
+      </div>
 
-      <div style={{...sidebarControlsStyle, borderBottom: 'none', borderTop: '1px solid #E9EAEB', paddingTop: '15px', marginTop: 'auto'}}>
+      <div style={{
+        ...sidebarControlsStyle, 
+        borderBottom: 'none', 
+        borderTop: '1px solid #E9EAEB', 
+        paddingTop: '15px', 
+        marginTop: 'auto',
+        paddingLeft: '10px',
+        paddingRight: '10px'
+      }}>
          <button 
           onClick={onSavePNG}
           style={secondarySidebarButtonStyle}

@@ -489,7 +489,8 @@ function App() {
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
     flexGrow: 1,
-    position: 'relative',
+    height: '100%',
+    position: 'relative', 
     background: BACKGROUND_COLOR, 
     backgroundImage: `radial-gradient(${DOT_PATTERN_COLOR} 1px, transparent 1px)`,
     backgroundSize: '15px 15px',
@@ -497,6 +498,19 @@ function App() {
 
   return (
     <div style={{ display: 'flex', height: '100vh' }} ref={reactFlowWrapper}>
+      <Sidebar 
+        selectedNodes={selectedNodes}
+        selectedEdge={selectedEdge}
+        nodes={nodes} 
+        edges={edges} 
+        setEdges={setEdges}
+        onAddNodeClick={() => openNodeForm()}
+        onEditNodeClick={selectedNodes.length === 1 ? () => openNodeForm(selectedNodes[0]) : undefined}
+        onDeleteNodesClick={handleDeleteSelectedNodes}
+        onSavePNG={handleSavePNG}
+        onSaveFlow={handleSaveFlow}
+        onLoadFlowTrigger={handleLoadFlowTrigger}
+      />
       <div style={reactFlowWrapperStyle}> 
         <ReactFlow
           nodes={nodes} 
@@ -525,19 +539,6 @@ function App() {
           )}
         </ReactFlow>
       </div>
-      <Sidebar 
-        selectedNodes={selectedNodes}
-        selectedEdge={selectedEdge}
-        nodes={nodes} 
-        edges={edges} 
-        setEdges={setEdges}
-        onAddNodeClick={() => openNodeForm()}
-        onEditNodeClick={selectedNodes.length === 1 ? () => openNodeForm(selectedNodes[0]) : undefined}
-        onDeleteNodesClick={handleDeleteSelectedNodes}
-        onSavePNG={handleSavePNG}
-        onSaveFlow={handleSaveFlow}
-        onLoadFlowTrigger={handleLoadFlowTrigger}
-      />
       <input 
         type="file"
         ref={fileInputRef}
