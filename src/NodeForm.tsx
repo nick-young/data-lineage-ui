@@ -4,7 +4,9 @@ import {
   entityConfig, 
   getEntityNames, 
   getTypesForEntity, 
-  getSubTypesForType 
+  getSubTypesForType,
+  TypeConfig,
+  SubTypeConfig
 } from './config/nodeTypesConfig';
 
 // Import NodeData type from App or define it consistently
@@ -41,9 +43,6 @@ interface NodeFormProps {
   onSubmit: (data: NodeFormData) => void;
   onCancel: () => void;
 }
-
-// Get main types from config
-const nodeTypes = entityConfig.map(config => config.name);
 
 // Modal styling refinements - Adjusted for scrolling layout
 const modalOverlayStyle: React.CSSProperties = {

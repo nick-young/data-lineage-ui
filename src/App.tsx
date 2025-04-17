@@ -1,18 +1,18 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport, MiniMap, Controls } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport, MiniMap, Controls
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, ReactFlowProvider, useReactFlow, MiniMap, Controls } from 'reactflow'; // Removed unused imports
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
 import * as htmlToImage from 'html-to-image'; // Added
 
 import CustomNode from './CustomNode'; // Import the custom node
-import Sidebar from './Sidebar'; // Import the Sidebar component
+import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import Sidebar and constants
 import NodeForm from './NodeForm'; // Import NodeForm
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
 
 // Node data type - Reflect new hierarchy
-interface NodeData {
+export interface NodeData {
   label: string;      // User-defined name
   entity: string;     // Broad category (e.g., Database)
   type: string;       // Specific tech (e.g., MySQL)
@@ -26,7 +26,7 @@ interface NodeData {
 }
 
 // Edge data type
-interface EdgeData {
+export interface EdgeData {
   details?: string;
 }
 
@@ -186,6 +186,30 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 };
 // --------------------------
 
+// --- Toggle Button Style (Defined in App.tsx) ---
+const getToggleButtonStyleApp = (isVisible: boolean): React.CSSProperties => ({
+  position: 'absolute', // Position relative to the main flex container
+  top: '15px',        // Same vertical position as before
+  // Calculate left position based on sidebar state and width constants
+  left: `${isVisible ? SIDEBAR_WIDTH - 13 : COLLAPSED_WIDTH - 13}px`, // Center button on the edge
+  zIndex: 10,          // Ensure it's above React Flow controls/nodes potentially
+  background: '#e9ecef',
+  border: '1px solid #ced4da',
+  borderRadius: '50%',
+  width: '26px',
+  height: '26px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  fontSize: '14px',
+  lineHeight: '1',
+  color: '#495057',
+  padding: 0,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  transition: 'left 0.3s ease-in-out', // Animate the left position change
+});
+
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
@@ -196,7 +220,7 @@ function App() {
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); 
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
-  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Added state
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // State for sidebar visibility
 
   // --- Derive selected nodes state ---
   const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
@@ -232,7 +256,7 @@ function App() {
   }, [onNodesChangeOriginal]);
 
   // --- Event Handlers & Callbacks ---
-  const onEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
+  const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
     setSelectedEdge((currentEdge) => (currentEdge?.id === edge.id ? null : edge));
     setNodes((nds) => nds.map(n => ({ ...n, selected: false })));
     setEditingNode(null); 
@@ -362,7 +386,7 @@ function App() {
   }, [copiedNodes, setNodes, reactFlowInstance]);
 
   // --- Double Click Handler ---
-  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
      openNodeForm(node);
   }, [openNodeForm]);
 
@@ -486,12 +510,15 @@ function App() {
     event.target.value = ''; // Reset file input
   }, [setNodes, setEdges, reactFlowInstance]);
 
-  // --- Toggle Sidebar Function ---
+  // --- Sidebar Toggle Handler ---
   const toggleSidebar = useCallback(() => {
     setIsSidebarVisible(prev => !prev);
-    // Optional: Fit view after animation
-    setTimeout(() => reactFlowInstance.fitView({ duration: 200 }), 350); 
-  }, [reactFlowInstance]);
+    // Optional: Trigger layout recalculation slightly after animation starts/ends
+    // Using requestAnimationFrame ensures it happens after the next repaint
+    requestAnimationFrame(() => {
+        window.dispatchEvent(new Event('resize'));
+    });
+  }, []);
 
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
@@ -504,8 +531,9 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }} ref={reactFlowWrapper}>
-      <Sidebar 
+    // Main flex container - needs position: relative for absolute positioning of button
+    <div style={{ display: 'flex', height: '100vh', width: '100vw', position: 'relative' }}> 
+      <Sidebar
         selectedNodes={selectedNodes}
         selectedEdge={selectedEdge}
         nodes={nodes} 
@@ -516,9 +544,18 @@ function App() {
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={() => handleLayoutNodes('LR')}
-        isSidebarVisible={isSidebarVisible} 
-        onToggleSidebar={toggleSidebar} 
+        isSidebarVisible={isSidebarVisible} // Pass only for width styling
       />
+      
+      {/* --- Toggle Button (Placed outside Sidebar) --- */}
+      <button 
+        style={getToggleButtonStyleApp(isSidebarVisible)} 
+        onClick={toggleSidebar} 
+        title={isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+      >
+        {isSidebarVisible ? '<' : '>'}
+      </button>
+
       <div style={reactFlowWrapperStyle}> 
         <ReactFlow
           nodes={nodes} 
@@ -554,7 +591,7 @@ function App() {
         accept=".json"
         onChange={handleLoadFlow}
       />
-      </div>
+    </div>
   );
 }
 

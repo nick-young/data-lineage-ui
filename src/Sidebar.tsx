@@ -1,22 +1,12 @@
-import React, { useMemo, useCallback, useState, useRef } from 'react';
-import { Node, Edge, ReactFlowState, useStore } from 'reactflow';
+import React, { useMemo, useCallback, useState } from 'react';
+import { Node, Edge } from 'reactflow';
+import { NodeData, EdgeData } from './App';
 
 // Define the expected data structure for the selected node
-interface NodeData {
-  label: string;
-  entity: string;
-  type: string;
-  subType?: string;
-  domain?: string;
-  owner?: string;
-  description?: string;
-  transformations?: string;
-  filters?: string;
-}
-
-interface EdgeData {
-  details?: string;
-}
+/* 
+interface NodeData { ... } 
+interface EdgeData { ... }
+*/
 
 interface SidebarProps {
   selectedNodes: Node<NodeData>[];
@@ -30,12 +20,11 @@ interface SidebarProps {
   onLoadFlowTrigger: () => void;
   onLayoutNodesClick?: () => void;
   isSidebarVisible: boolean;
-  onToggleSidebar: () => void;
 }
 
 // --- Constants ---
-const SIDEBAR_WIDTH = 280;
-const COLLAPSED_WIDTH = 30; // Keep a small width to contain the button
+export const SIDEBAR_WIDTH = 280;
+export const COLLAPSED_WIDTH = 30; // Keep a small width to contain the button
 
 // --- Styles ---
 const sidebarStyle = (isVisible: boolean): React.CSSProperties => ({ 
@@ -56,55 +45,17 @@ const sidebarStyle = (isVisible: boolean): React.CSSProperties => ({
   transition: 'width 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out', // Animate width/padding/border
 });
 
-// --- Style for the toggle button (now a function) ---
-const getToggleButtonStyle = (isVisible: boolean): React.CSSProperties => ({
-  position: 'absolute',
-  top: '15px',
-  // Position based on visibility state
-  right: isVisible ? '-13px' : 'auto', // Original position when visible
-  left: isVisible ? 'auto' : '2px',   // Position near left edge within the collapsed width
-  background: '#e9ecef',
-  border: '1px solid #ced4da',
-  borderRadius: '50%', // Make it circular
-  width: '26px',
-  height: '26px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  zIndex: 10, // Ensure it's above other elements
-  fontSize: '14px',
-  lineHeight: '1',
-  color: '#495057',
-  padding: 0,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-  transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out', // Animate position change
-});
-
-// Style for the toggle button
-const toggleButtonStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: '15px',
-  // Position just outside the border when visible, or near edge when collapsed
-  right: '-13px', // Adjust to be centered on the border line
-  background: '#e9ecef',
-  border: '1px solid #ced4da',
-  borderRadius: '50%', // Make it circular
-  width: '26px',
-  height: '26px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  zIndex: 10,
-  fontSize: '14px',
-  lineHeight: '1',
-  color: '#495057',
-  padding: 0,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+// Style for the content area that scrolls
+const scrollableAreaStyle: React.CSSProperties = {
+  flexGrow: 1, 
+  overflowY: 'auto', 
+  overflowX: 'hidden', 
+  paddingTop: '20px',
+  paddingLeft: '10px',
+  paddingRight: '10px'
 };
 
-// Style for clickable section headers
+// Style for the clickable section headers
 const clickableHeaderStyle: React.CSSProperties = {
   cursor: 'pointer',
   display: 'flex',
@@ -267,7 +218,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLoadFlowTrigger,
   onLayoutNodesClick,
   isSidebarVisible,
-  onToggleSidebar,
 }) => {
   
   // REMOVED resize state/handlers
@@ -468,11 +418,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <div style={sidebarStyle(isSidebarVisible)}>
-      {/* --- Toggle Button --- */}
-      <button style={getToggleButtonStyle(isSidebarVisible)} onClick={onToggleSidebar} title={isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}>
-        {isSidebarVisible ? '<' : '>'}
-      </button>
-
       {/* --- Conditionally Render Content --- */}
       {isSidebarVisible && (
         <>
@@ -501,14 +446,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <hr style={separatorStyle} />
           
           {/* --- Scrollable Details Area --- */}
-          <div style={{
-            flexGrow: 1, 
-            overflowY: 'auto', 
-            overflowX: 'hidden', 
-            paddingTop: '20px',
-            paddingLeft: '10px',
-            paddingRight: '10px'
-          }}>
+          <div style={scrollableAreaStyle}>
             {content}
           </div>
 

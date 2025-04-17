@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { getIconForType, defaultIconUrl } from './config/nodeTypesConfig'; // Import config and icon helper
+import { getIconForType /*, defaultIconUrl */ } from './config/nodeTypesConfig'; // Removed unused import
 
 // Removed direct icon imports as they come from config now
 // import DatabaseIconUrl from './assets/om-icons/service-icon-sql.png';
@@ -38,20 +38,6 @@ const HANDLE_SIZE = '10px';
 const HANDLE_BORDER_COLOR = '#BDBDBD'; // Light grey border for handles
 
 // --- Styles ---
-
-// Main container for the node
-const nodeWrapperStyle: React.CSSProperties = {
-  background: NODE_BACKGROUND,
-  border: `1px solid ${NODE_BORDER_COLOR}`,
-  borderRadius: NODE_BORDER_RADIUS,
-  padding: '10px 15px', // Adjust padding as needed
-  boxShadow: NODE_SHADOW,
-  display: 'flex',
-  alignItems: 'center', // Vertically center icon and text block
-  gap: '10px', // Space between icon and text block
-  minWidth: '180px', // Ensure minimum width
-  transition: 'border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out', // Add transition
-};
 
 // Icon style
 const iconStyle: React.CSSProperties = {

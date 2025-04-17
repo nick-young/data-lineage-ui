@@ -48,6 +48,29 @@ A React-based UI for visualizing and managing data lineage graphs using React Fl
 4.  **Open the application:**
     Navigate to `http://localhost:5174` (or the port specified in the terminal output) in your web browser.
 
+## Running with Docker (Alternative)
+
+If you have Docker and Docker Compose (or the integrated `docker compose` command) installed, you can build and run the application in a container:
+
+1.  **Navigate to the UI directory:**
+    ```bash
+    cd data-lineage-ui
+    ```
+
+2.  **Build and run the container:**
+    ```bash
+    docker compose up -d --build
+    ```
+    *(Note: Use `docker-compose` with a hyphen if the command above fails)*
+
+3.  **Open the application:**
+    Navigate to `http://localhost:5174` in your web browser.
+
+4.  **To stop the container:**
+    ```bash
+    docker compose down
+    ```
+
 ## Development Notes
 
 *   Built with React, TypeScript, and Vite.
