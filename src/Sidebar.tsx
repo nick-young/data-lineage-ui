@@ -383,8 +383,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
         <button 
-          onClick={() => onLayoutClick('TB')}
+          onClick={() => onLayoutClick('LR')}
           style={secondarySidebarButtonStyle}
+          title="Apply Left-to-Right Layout"
         >
           Layout Nodes
         </button>
