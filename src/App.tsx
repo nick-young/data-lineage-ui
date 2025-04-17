@@ -7,7 +7,6 @@ import * as htmlToImage from 'html-to-image'; // Added
 import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar from './Sidebar'; // Import the Sidebar component
 import NodeForm from './NodeForm'; // Import NodeForm
-import './App.css';
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';

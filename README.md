@@ -2,6 +2,8 @@
 
 A React-based UI for visualizing and managing data lineage graphs using React Flow.
 
+![Screenshot of Data Lineage Visualiser](public/screen.png)
+
 ## Features
 
 *   **Interactive Canvas:** Build and manipulate lineage graphs using drag-and-drop.

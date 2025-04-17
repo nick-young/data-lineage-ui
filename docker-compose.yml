@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  data-lineage-ui:
+    build: .
+    container_name: data-lineage-ui
+    ports:
+      - "5174:80" # Map host port 5174 to container port 80
+    restart: unless-stopped 
