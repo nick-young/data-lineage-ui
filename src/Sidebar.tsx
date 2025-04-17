@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Node, Edge } from 'reactflow';
 import { NodeData, EdgeData } from './App';
-import { version } from '../../package.json'; // Import version
+import { version } from '../package.json'; // Corrected import path for Docker context
 
 // Define the expected data structure for the selected node
 /* 
