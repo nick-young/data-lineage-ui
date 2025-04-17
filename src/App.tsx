@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport, MiniMap, Controls } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport, MiniMap, Controls
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
 import * as htmlToImage from 'html-to-image'; // Added
@@ -197,6 +197,7 @@ function App() {
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); 
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true); // Added state
 
   // --- Derive selected nodes state ---
   const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
@@ -367,7 +368,7 @@ function App() {
   }, [openNodeForm]);
 
   // --- Layout Handler ---
-  const handleLayout = useCallback((direction: string) => {
+  const handleLayoutNodes = useCallback((direction: string = 'LR') => {
     const layoutedNodes = getLayoutedElements(nodes, edges, direction);
     setNodes([...layoutedNodes]); 
   }, [nodes, edges, setNodes]); 
@@ -486,6 +487,13 @@ function App() {
     event.target.value = ''; // Reset file input
   }, [setNodes, setEdges, reactFlowInstance]);
 
+  // --- Toggle Sidebar Function ---
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarVisible(prev => !prev);
+    // Optional: Fit view after animation
+    setTimeout(() => reactFlowInstance.fitView({ duration: 200 }), 350); 
+  }, [reactFlowInstance]);
+
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
     flexGrow: 1,
@@ -505,11 +513,13 @@ function App() {
         edges={edges} 
         setEdges={setEdges}
         onAddNodeClick={() => openNodeForm()}
-        onEditNodeClick={selectedNodes.length === 1 ? () => openNodeForm(selectedNodes[0]) : undefined}
         onDeleteNodesClick={handleDeleteSelectedNodes}
         onSavePNG={handleSavePNG}
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
+        onLayoutNodesClick={() => handleLayoutNodes('LR')}
+        isSidebarVisible={isSidebarVisible} 
+        onToggleSidebar={toggleSidebar} 
       />
       <div style={reactFlowWrapperStyle}> 
         <ReactFlow
@@ -546,7 +556,7 @@ function App() {
         accept=".json"
         onChange={handleLoadFlow}
       />
-    </div>
+      </div>
   );
 }
 

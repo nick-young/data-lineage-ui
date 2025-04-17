@@ -25,30 +25,84 @@ interface SidebarProps {
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
   onAddNodeClick: () => void;
-  onEditNodeClick?: (node: Node<NodeData>) => void;
   onDeleteNodesClick: () => void;
   onSavePNG: () => void;
   onSaveFlow: () => void;
   onLoadFlowTrigger: () => void;
+  onLayoutNodesClick?: () => void;
+  isSidebarVisible: boolean;
+  onToggleSidebar: () => void;
 }
 
 // --- Constants ---
-const SIDEBAR_WIDTH = 280; // Fixed width for now
+const SIDEBAR_WIDTH = 280;
+const COLLAPSED_WIDTH = 30; // Keep a small width to contain the button
 
 // --- Styles ---
-const sidebarStyle: React.CSSProperties = { // Simplified style
-  width: `${SIDEBAR_WIDTH}px`,
-  height: '100%', // Fill height of flex container
+const sidebarStyle = (isVisible: boolean): React.CSSProperties => ({ 
+  width: isVisible ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
+  minWidth: isVisible ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`, // Prevent shrinking/growing beyond set state
+  height: '100%',
   background: '#f8f9fa',
-  borderRight: '1px solid #D5D7DA',
-  padding: '20px 0',      // Corrected: No horizontal padding on main container
+  borderRight: isVisible ? '1px solid #D5D7DA' : 'none', // Hide border when collapsed
+  padding: isVisible ? '20px 0' : '0', // Remove padding when collapsed
   boxSizing: 'border-box',
   fontFamily: 'Inter, sans-serif',
   display: 'flex',
   flexDirection: 'column',
   color: '#333',
   fontSize: '14px',
-  overflow: 'hidden', // Prevent overall sidebar scroll
+  overflow: 'hidden',
+  position: 'relative', // Needed for positioning the button
+  transition: 'width 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out', // Animate width/padding/border
+});
+
+// --- Style for the toggle button (now a function) ---
+const getToggleButtonStyle = (isVisible: boolean): React.CSSProperties => ({
+  position: 'absolute',
+  top: '15px',
+  // Position based on visibility state
+  right: isVisible ? '-13px' : 'auto', // Original position when visible
+  left: isVisible ? 'auto' : '2px',   // Position near left edge within the collapsed width
+  background: '#e9ecef',
+  border: '1px solid #ced4da',
+  borderRadius: '50%', // Make it circular
+  width: '26px',
+  height: '26px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  zIndex: 10, // Ensure it's above other elements
+  fontSize: '14px',
+  lineHeight: '1',
+  color: '#495057',
+  padding: 0,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+  transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out', // Animate position change
+});
+
+// Style for the toggle button
+const toggleButtonStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: '15px',
+  // Position just outside the border when visible, or near edge when collapsed
+  right: '-13px', // Adjust to be centered on the border line
+  background: '#e9ecef',
+  border: '1px solid #ced4da',
+  borderRadius: '50%', // Make it circular
+  width: '26px',
+  height: '26px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+  zIndex: 10,
+  fontSize: '14px',
+  lineHeight: '1',
+  color: '#495057',
+  padding: 0,
+  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
 };
 
 // Style for clickable section headers
@@ -57,10 +111,13 @@ const clickableHeaderStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
-  userSelect: 'none', // Prevent text selection on click
-  paddingBottom: '10px', // Ensure padding matches titleStyle
-  borderBottom: '1px solid #E9EAEB', // Ensure border matches titleStyle
-  marginBottom: '16px', // Ensure margin matches titleStyle
+  userSelect: 'none',
+  paddingBottom: '10px',
+  borderBottom: '1px solid #E9EAEB',
+  marginBottom: '16px',
+  fontSize: 'inherit',
+  fontWeight: 600,
+  color: '#1B1D21',
 };
 
 const arrowStyle = (isExpanded: boolean): React.CSSProperties => ({
@@ -158,7 +215,6 @@ const sidebarControlsStyle: React.CSSProperties = {
 };
 
 const sidebarButtonStyle: React.CSSProperties = {
-  flexGrow: 1, // Make buttons share space
   padding: '8px 12px',
   border: '1px solid #D5D7DA',
   borderRadius: '4px',
@@ -183,7 +239,22 @@ const secondarySidebarButtonStyle: React.CSSProperties = {
   background: '#fff',
   color: '#333',
 };
-// -------------------------------------------
+
+// --- New Style for Separator --- 
+const separatorStyle: React.CSSProperties = {
+  border: 'none',
+  borderTop: '1px solid #dee2e6', // Match border color
+  margin: '15px 0', // Add some vertical spacing
+};
+
+// --- New Styles for Buttons in Sidebar ---
+const topControlsStyle: React.CSSProperties = {
+  display: 'flex',
+  gap: '10px',
+  marginBottom: '20px', // Space below buttons
+  paddingBottom: '15px', // Space above border
+  borderBottom: '1px solid #E9EAEB', // Separator line
+};
 
 const Sidebar: React.FC<SidebarProps> = ({ 
   selectedNodes,
@@ -192,11 +263,13 @@ const Sidebar: React.FC<SidebarProps> = ({
   edges,
   setEdges,
   onAddNodeClick,
-  onEditNodeClick,
   onDeleteNodesClick,
   onSavePNG,
   onSaveFlow,
   onLoadFlowTrigger,
+  onLayoutNodesClick,
+  isSidebarVisible,
+  onToggleSidebar,
 }) => {
   
   // REMOVED resize state/handlers
@@ -209,7 +282,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     details: true,
     inputs: true,
     outputs: true,
-    description: false, // Default some to collapsed
+    description: false,
     transformations: false,
     filters: false,
     edgeDetails: true,
@@ -270,7 +343,9 @@ const Sidebar: React.FC<SidebarProps> = ({
     const { label = 'N/A', entity = 'N/A', type = 'N/A', subType, domain = '-', owner = '-', description = '-', transformations = '-', filters = '-'} = singleSelectedNode.data || {};
     content = (
       <>
-        <h3 style={{...titleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('details')}>Node Details<span style={arrowStyle(expandedSections.details)}>▶</span></h3>
+        <div style={{...clickableHeaderStyle, fontSize: '16px', color: '#1B1D21'}} onClick={() => toggleSection('details')}>
+          Node Details<span style={arrowStyle(expandedSections.details)}>▶</span>
+        </div>
         {expandedSections.details && (
           <div style={sectionStyle}>
             <div style={detailRowStyle}>
@@ -308,28 +383,38 @@ const Sidebar: React.FC<SidebarProps> = ({
           </div>
         )}
 
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('inputs')}>Inputs ({inputs.length})<span style={arrowStyle(expandedSections.inputs)}>▶</span></h4>
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('inputs')}>
+          <span>Inputs ({inputs.length})</span><span style={arrowStyle(expandedSections.inputs)}>▶</span>
+        </div>
         {expandedSections.inputs && (
             inputs.length > 0 
               ? (<ul style={listStyle}>{inputs.map((inputLabel, index) => <li style={listItemStyle} key={index}>{inputLabel}</li>)}</ul>) 
-              : (<p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
+              : (<p style={{...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
         )}
         
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('outputs')}>Outputs ({outputs.length})<span style={arrowStyle(expandedSections.outputs)}>▶</span></h4>
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('outputs')}>
+          <span>Outputs ({outputs.length})</span><span style={arrowStyle(expandedSections.outputs)}>▶</span>
+        </div>
         {expandedSections.outputs && (
             outputs.length > 0 
               ? (<ul style={listStyle}>{outputs.map((outputLabel, index) => <li style={listItemStyle} key={index}>{outputLabel}</li>)}</ul>)
-              : (<p style={{ ...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
+              : (<p style={{...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
         )}
 
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('description')}>Description<span style={arrowStyle(expandedSections.description)}>▶</span></h4>
-        {expandedSections.description && <p style={descriptionParagraphStyle}>{description}</p>}
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('description')}>
+          Description<span style={arrowStyle(expandedSections.description)}>▶</span>
+        </div>
+        {expandedSections.description && (<p style={descriptionParagraphStyle}>{description}</p>)}
 
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('transformations')}>Transformations<span style={arrowStyle(expandedSections.transformations)}>▶</span></h4>
-        {expandedSections.transformations && <p style={descriptionParagraphStyle}>{transformations}</p>}
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('transformations')}>
+          Transformations<span style={arrowStyle(expandedSections.transformations)}>▶</span>
+        </div>
+        {expandedSections.transformations && (<p style={descriptionParagraphStyle}>{transformations}</p>)}
 
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('filters')}>Filters<span style={arrowStyle(expandedSections.filters)}>▶</span></h4>
-        {expandedSections.filters && <p style={descriptionParagraphStyle}>{filters}</p>}
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('filters')}>
+          Filters<span style={arrowStyle(expandedSections.filters)}>▶</span>
+        </div>
+        {expandedSections.filters && (<p style={descriptionParagraphStyle}>{filters}</p>)}
       </>
     );
   } else if (selectedEdge) {
@@ -338,7 +423,9 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     content = (
       <>
-        <h3 style={{...titleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('relationshipDetails')}>Relationship Details<span style={arrowStyle(expandedSections.relationshipDetails)}>▶</span></h3>
+        <div style={{...clickableHeaderStyle, fontSize: '16px', color: '#1B1D21'}} onClick={() => toggleSection('relationshipDetails')}>
+          Relationship Details<span style={arrowStyle(expandedSections.relationshipDetails)}>▶</span>
+        </div>
         {expandedSections.relationshipDetails && (
           <div style={sectionStyle}>
             <div style={detailRowStyle}>
@@ -355,14 +442,11 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
           </div>
         )}
-        <h4 style={{...subTitleStyle, ...clickableHeaderStyle}} onClick={() => toggleSection('edgeDetails')}>Details<span style={arrowStyle(expandedSections.edgeDetails)}>▶</span></h4>
+        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('edgeDetails')}>
+           Details<span style={arrowStyle(expandedSections.edgeDetails)}>▶</span>
+        </div>
         {expandedSections.edgeDetails && (
-          <textarea 
-            style={textareaStyle}
-            value={selectedEdge.data?.details || ''}
-            onChange={onEdgeDetailsChange}
-            placeholder="Enter relationship details..."
-          />
+          <textarea style={textareaStyle} value={selectedEdge.data?.details || ''} onChange={onEdgeDetailsChange} placeholder="Enter relationship details..."/>
         )}
       </>
     );
@@ -385,66 +469,98 @@ const Sidebar: React.FC<SidebarProps> = ({
   }
 
   return (
-    <div style={sidebarStyle}>
-      <div style={{ ...sidebarControlsStyle, paddingLeft: '10px', paddingRight: '10px' }}>
-        <button 
-          onClick={onAddNodeClick}
-          style={primarySidebarButtonStyle}
-        >
-          Add Node
-        </button>
-        {singleSelectedNode && onEditNodeClick && (
-          <button 
-            onClick={() => onEditNodeClick(singleSelectedNode)}
-            style={secondarySidebarButtonStyle}
-          >
-            Edit Node
-          </button>
-        )}
-      </div>
+    <div style={sidebarStyle(isSidebarVisible)}>
+      {/* --- Toggle Button --- */}
+      <button style={getToggleButtonStyle(isSidebarVisible)} onClick={onToggleSidebar} title={isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}>
+        {isSidebarVisible ? '<' : '>'}
+      </button>
 
-      <div style={{
-        flexGrow: 1, 
-        overflowY: 'auto', 
-        overflowX: 'hidden', 
-        paddingTop: '20px',
-        paddingLeft: '10px',
-        paddingRight: '10px'
-      }}>
-        {content}
-      </div>
+      {/* --- Conditionally Render Content --- */}
+      {isSidebarVisible && (
+        <>
+          {/* --- Top Controls (Add / Layout) --- */}
+          <div style={{ ...topControlsStyle, paddingLeft: '10px', paddingRight: '10px' }}> 
+            <button 
+              onClick={onAddNodeClick}
+              style={primarySidebarButtonStyle}
+              title="Add a new node to the canvas"
+            >
+              Add Node
+            </button>
+            {/* --- Moved Layout Button --- */}
+            {onLayoutNodesClick && (
+              <button 
+                onClick={onLayoutNodesClick}
+                style={secondarySidebarButtonStyle}
+                title="Automatically arrange nodes Left-to-Right"
+              >
+                Layout Nodes
+              </button>
+            )}
+          </div>
 
-      <div style={{
-        ...sidebarControlsStyle, 
-        borderBottom: 'none', 
-        borderTop: '1px solid #E9EAEB', 
-        paddingTop: '15px', 
-        marginTop: 'auto',
-        paddingLeft: '10px',
-        paddingRight: '10px'
-      }}>
-         <button 
-          onClick={onSavePNG}
-          style={secondarySidebarButtonStyle}
-          title="Save view as PNG image"
-        >
-          Save PNG
-        </button>
-        <button 
-          onClick={onSaveFlow}
-          style={secondarySidebarButtonStyle}
-          title="Save nodes and edges to a JSON file"
-        >
-          Save Flow
-        </button>
-         <button 
-          onClick={onLoadFlowTrigger}
-          style={secondarySidebarButtonStyle}
-          title="Load nodes and edges from a JSON file"
-        >
-          Load Flow
-        </button>
-      </div>
+          {/* --- Separator --- */}
+          <hr style={separatorStyle} />
+          
+          {/* --- Scrollable Details Area --- */}
+          <div style={{
+            flexGrow: 1, 
+            overflowY: 'auto', 
+            overflowX: 'hidden', 
+            paddingTop: '20px',
+            paddingLeft: '10px',
+            paddingRight: '10px'
+          }}>
+            {content}
+          </div>
+
+          {/* --- Separator --- */}
+          <hr style={separatorStyle} />
+
+          {/* --- Bottom Controls (Delete / Save / Load) --- */}
+          <div style={{
+            ...sidebarControlsStyle, 
+            borderBottom: 'none', 
+            borderTop: '1px solid #E9EAEB', 
+            paddingTop: '15px', 
+            marginTop: 'auto',
+            paddingLeft: '10px',
+            paddingRight: '10px'
+          }}>
+            {/* Delete Button */}
+            {selectedNodes.length > 0 && (
+                 <button 
+                    onClick={onDeleteNodesClick}
+                    style={{...secondarySidebarButtonStyle, color: '#dc3545', borderColor: '#dc3545'}} // Make it red
+                    title={`Delete ${selectedNodes.length} selected node(s)`}
+                 >
+                    Delete Node{selectedNodes.length > 1 ? 's' : ''}
+                 </button>
+             )}
+            <button 
+              onClick={onSavePNG}
+              style={secondarySidebarButtonStyle}
+              title="Save the current view as a PNG image"
+            >
+              Save PNG
+            </button>
+            <button 
+              onClick={onSaveFlow}
+              style={secondarySidebarButtonStyle}
+              title="Save the current nodes and edges to a JSON file"
+            >
+              Save Flow
+            </button>
+            <button 
+              onClick={onLoadFlowTrigger}
+              style={secondarySidebarButtonStyle}
+              title="Load nodes and edges from a JSON file"
+            >
+              Load Flow
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 };
