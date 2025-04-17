@@ -380,7 +380,6 @@ function App() {
   // --- Keyboard Event Listener for Copy/Paste --- 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      console.log('Key pressed:', event.key, 'Ctrl/Meta:', event.ctrlKey || event.metaKey); 
       const target = event.target as HTMLElement;
       const isInputFocused = target.tagName === 'INPUT' || 
                              target.tagName === 'TEXTAREA' || 
@@ -388,21 +387,14 @@ function App() {
                              target.isContentEditable || 
                              target.closest('form');
       if (isInputFocused) {
-          console.log('Input focused, ignoring copy/paste.'); 
           return;
       }
       if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-        console.log('Attempting copy...'); 
         handleCopy();
       }
       if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-        console.log('Attempting paste...'); 
         handlePaste();
       }
-      // Optional: Delete on Backspace/Delete key
-      // if ((event.key === 'Backspace' || event.key === 'Delete') && selectedNodes.length > 0) {
-      //     handleDeleteSelectedNodes();
-      // }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => {

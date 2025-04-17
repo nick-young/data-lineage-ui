@@ -19,13 +19,14 @@ interface EdgeData {
 }
 
 interface SidebarProps {
-  selectedNode: Node<NodeData> | null;
+  selectedNodes: Node<NodeData>[];
   selectedEdge: Edge<EdgeData> | null;
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
   onAddNodeClick: () => void;
   onEditNodeClick?: (node: Node<NodeData>) => void;
+  onDeleteNodesClick: () => void;
   onLayoutClick: (direction: string) => void;
 }
 
@@ -160,21 +161,27 @@ const secondarySidebarButtonStyle: React.CSSProperties = {
 // -------------------------------------------
 
 const Sidebar: React.FC<SidebarProps> = ({ 
-  selectedNode, 
+  selectedNodes,
   selectedEdge, 
   nodes, 
   edges, 
   setEdges, 
   onAddNodeClick,
   onEditNodeClick,
+  onDeleteNodesClick,
   onLayoutClick
 }) => {
 
-  const { inputs, outputs } = useMemo(() => {
-    if (!selectedNode) return { inputs: [], outputs: [] };
+  // --- Determine single selected node for details/edit --- 
+  const singleSelectedNode = useMemo(() => {
+    return selectedNodes.length === 1 ? selectedNodes[0] : null;
+  }, [selectedNodes]);
 
-    const inputEdges = edges.filter((edge) => edge.target === selectedNode.id);
-    const outputEdges = edges.filter((edge) => edge.source === selectedNode.id);
+  const { inputs, outputs } = useMemo(() => {
+    if (!singleSelectedNode) return { inputs: [], outputs: [] };
+
+    const inputEdges = edges.filter((edge) => edge.target === singleSelectedNode.id);
+    const outputEdges = edges.filter((edge) => edge.source === singleSelectedNode.id);
 
     const inputNodeLabels = inputEdges.map((edge) => {
       const sourceNode = nodes.find((node) => node.id === edge.source);
@@ -187,7 +194,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     });
 
     return { inputs: inputNodeLabels, outputs: outputNodeLabels };
-  }, [selectedNode, nodes, edges]);
+  }, [singleSelectedNode, nodes, edges]);
 
   const onEdgeDetailsChange = useCallback(
     (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -210,7 +217,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   );
 
   let content;
-  if (selectedNode) {
+  if (singleSelectedNode && !selectedEdge) {
     const { 
       label = 'N/A', 
       entity = 'N/A',
@@ -221,7 +228,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       description = '-', 
       transformations = '-', 
       filters = '-'
-    } = selectedNode.data || {};
+    } = singleSelectedNode.data || {};
 
     content = (
       <>
@@ -230,7 +237,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         <div style={sectionStyle}>
             <div style={detailRowStyle}>
               <span style={labelStyle}>ID:</span> 
-              <span style={valueStyle}>{selectedNode.id}</span>
+              <span style={valueStyle}>{singleSelectedNode.id}</span>
             </div>
             <div style={detailRowStyle}>
               <span style={labelStyle}>Label:</span> 
@@ -332,6 +339,18 @@ const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </>
     );
+  } else if (selectedNodes.length > 1) {
+    content = (
+      <>
+        <h3 style={titleStyle}>Multiple Nodes Selected</h3>
+        <p style={descriptionParagraphStyle}>{selectedNodes.length} nodes selected.</p>
+        <ul style={listStyle}>
+          {selectedNodes.map(node => (
+             <li style={listItemStyle} key={node.id}>{node.data.label || node.id}</li>
+          ))}
+        </ul>
+      </>
+    )
   } else {
     content = (
       <p style={descriptionParagraphStyle}>Select a node or edge to see details</p>
@@ -347,16 +366,24 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           Add Node
         </button>
-        {selectedNode && onEditNodeClick && (
+        {singleSelectedNode && onEditNodeClick && (
           <button 
-            onClick={() => onEditNodeClick(selectedNode)}
+            onClick={() => onEditNodeClick(singleSelectedNode)}
             style={secondarySidebarButtonStyle}
           >
             Edit Node
           </button>
         )}
+        {selectedNodes.length > 0 && (
+           <button 
+            onClick={onDeleteNodesClick}
+            style={{...secondarySidebarButtonStyle, color: '#dc3545', borderColor: '#dc3545'}}
+          >
+            Delete Selected ({selectedNodes.length})
+          </button>
+        )}
         <button 
-          onClick={() => onLayoutClick('LR')}
+          onClick={() => onLayoutClick('TB')}
           style={secondarySidebarButtonStyle}
         >
           Layout Nodes
