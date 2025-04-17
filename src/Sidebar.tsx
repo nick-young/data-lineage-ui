@@ -25,7 +25,7 @@ interface SidebarProps {
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
   onAddNodeClick: () => void;
-  onEditNodeClick: (node: Node<NodeData>) => void;
+  onEditNodeClick?: (node: Node<NodeData>) => void;
   onLayoutClick: (direction: string) => void;
 }
 
@@ -347,7 +347,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         >
           Add Node
         </button>
-        {selectedNode && (
+        {selectedNode && onEditNodeClick && (
           <button 
             onClick={() => onEditNodeClick(selectedNode)}
             style={secondarySidebarButtonStyle}

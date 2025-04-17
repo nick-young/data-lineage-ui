@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react'; // Import useEffect
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
 
@@ -187,14 +187,19 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 // --------------------------
 
 function App() {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodesData);
+  const reactFlowWrapper = useRef<HTMLDivElement>(null); 
+  const [nodes, setNodes, onNodesChangeOriginal] = useNodesState(initialNodesData);
   const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData>(initialEdgesData);
-  const [selectedNode, setSelectedNode] = useState<Node<NodeData> | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
-  const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); // State for node being edited
+  const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); 
+  const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
+  const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
 
-  // --- Save nodes and edges to Local Storage on change ---
+  // --- Derive selected nodes state ---
+  const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
+
+  // --- useEffects for saving, selection sync ---
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY_NODES, JSON.stringify(nodes));
   }, [nodes]);
@@ -203,44 +208,47 @@ function App() {
     localStorage.setItem(LOCAL_STORAGE_KEY_EDGES, JSON.stringify(edges));
   }, [edges]);
 
-  // --- Keep selectedEdge state synchronized with the edges array ---
   useEffect(() => {
     if (selectedEdge) {
-      // Find the edge in the current edges array that matches the selectedEdge's ID
       const currentEdgeInState = edges.find((edge) => edge.id === selectedEdge.id);
-      // If it exists and is different from the currently selected edge state,
-      // update the selectedEdge state to the new object reference.
       if (currentEdgeInState && currentEdgeInState !== selectedEdge) {
         setSelectedEdge(currentEdgeInState);
       }
-      // If the edge was deleted from the main state, deselect it
       else if (!currentEdgeInState) {
         setSelectedEdge(null);
       }
     }
-    // Run this effect whenever the edges array changes or the selected edge ID changes.
-  }, [edges, selectedEdge?.id]); // Dependency includes selectedEdge ID
-  // ------------------------------------------------------------------
+  }, [edges, selectedEdge?.id]);
 
-  // Handler for edge click
+  // --- Custom onNodesChange hook ---
+  const onNodesChange: typeof onNodesChangeOriginal = useCallback((changes) => {
+    const isSelectionChange = changes.some(change => change.type === 'select');
+    if (isSelectionChange) {
+      setSelectedEdge(null); 
+    }
+    onNodesChangeOriginal(changes); 
+  }, [onNodesChangeOriginal]);
+
+  // --- Event Handlers & Callbacks ---
   const onEdgeClick: EdgeMouseHandler = useCallback((event, edge) => {
     setSelectedEdge((currentEdge) => (currentEdge?.id === edge.id ? null : edge));
-    setSelectedNode(null); // Deselect node when edge is clicked
-  }, []);
+    setNodes((nds) => nds.map(n => ({ ...n, selected: false })));
+    setEditingNode(null); 
+    setIsFormVisible(false);
+  }, [setNodes]);
 
   // --- Form Handling ---
-  // Function to open the form for adding (no arg) or editing (with node)
   const openNodeForm = useCallback((nodeToEdit?: Node<NodeData>) => {
     setEditingNode(nodeToEdit || null);
     setIsFormVisible(true);
+    setSelectedEdge(null);
   }, []);
 
   const handleCancelForm = useCallback(() => {
     setIsFormVisible(false);
-    setEditingNode(null); // Clear editing state on cancel
+    setEditingNode(null);
   }, []);
 
-  // Handle ADDING a new node
   const handleAddNode = useCallback((formData: NodeFormData) => {
     const newNodeId = getNextNodeId();
     const newNode: Node<NodeData> = {
@@ -260,17 +268,15 @@ function App() {
       },
     };
     setNodes((nds) => nds.concat(newNode));
-    handleCancelForm(); // Close form and clear editing state
+    handleCancelForm();
   }, [setNodes, handleCancelForm]);
 
-  // Handle UPDATING an existing node
   const handleUpdateNode = useCallback((formData: NodeFormData) => {
-    if (!editingNode) return; // Should not happen if form logic is correct
+    if (!editingNode) return;
 
     setNodes((nds) =>
       nds.map((node) => {
         if (node.id === editingNode.id) {
-          // Return a new node object with updated data
           return { 
             ...node, 
             data: { 
@@ -289,27 +295,120 @@ function App() {
         return node;
       })
     );
-    handleCancelForm(); // Close form and clear editing state
+    handleCancelForm();
   }, [editingNode, setNodes, handleCancelForm]);
 
-  // Handler for connecting nodes
-  const onConnect = useCallback(
-    (params: Edge | Connection) => 
-      // Use default edge options for styling new edges
-      setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions, data: { details: '' } }, eds)),
-    [setEdges],
-  );
+  // --- Delete Handler ---
+  const handleDeleteSelectedNodes = useCallback(() => {
+    const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
+    if (selectedNodeIds.size === 0) return; 
+    setNodes((nds) => nds.filter((node) => !selectedNodeIds.has(node.id)));
+    setEdges((eds) =>
+      eds.filter((edge) => !selectedNodeIds.has(edge.source) && !selectedNodeIds.has(edge.target))
+    );
+    setSelectedEdge(null);
+    setEditingNode(null);
+    setIsFormVisible(false);
+  }, [selectedNodes, setNodes, setEdges]);
 
-  // --- Layout Handler - Updated to accept direction ---
+  // --- Copy Handler ---
+  const handleCopy = useCallback(() => {
+    if (selectedNodes.length > 0) {
+        const clonedNodes = selectedNodes.map(node => ({...node, data: {...node.data}}));
+        setCopiedNodes(clonedNodes);
+        console.log('Nodes copied:', clonedNodes);
+    } else {
+        setCopiedNodes([]); 
+    }
+  }, [selectedNodes]);
+
+  // --- Paste Handler ---
+  const handlePaste = useCallback(() => {
+    if (copiedNodes.length === 0) return;
+    const pane = reactFlowWrapper.current?.querySelector('.react-flow__viewport');
+    let pastePosition = { x: 100, y: 100 }; 
+    if (pane) {
+      pastePosition = reactFlowInstance.screenToFlowPosition({
+        x: pane.clientWidth / 2,
+        y: pane.clientHeight / 2,
+      });
+    }
+    let minX = Infinity;
+    let minY = Infinity;
+    if (copiedNodes.length > 0) { // Check length > 0 for safety
+        copiedNodes.forEach(node => {
+            minX = Math.min(minX, node.position.x);
+            minY = Math.min(minY, node.position.y);
+        });
+    } else {
+        minX = 0; // Default if no nodes somehow
+        minY = 0;
+    }
+
+    const newNodes = copiedNodes.map((node, index) => {
+      const newNodeId = getNextNodeId(); 
+      const nodePosition = {
+            x: pastePosition.x + (node.position.x - minX) + index * 10, 
+            y: pastePosition.y + (node.position.y - minY) + index * 10, 
+        };
+      return { ...node, id: newNodeId, position: nodePosition, selected: false, data: { ...node.data } };
+    });
+
+    setNodes((nds) => [...nds, ...newNodes]);
+    console.log('Nodes pasted:', newNodes); // Log moved inside
+
+  }, [copiedNodes, setNodes, reactFlowInstance]);
+
+  // --- Double Click Handler ---
+  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
+     openNodeForm(node);
+  }, [openNodeForm]);
+
+  // --- Layout Handler ---
   const handleLayout = useCallback((direction: string) => {
     const layoutedNodes = getLayoutedElements(nodes, edges, direction);
     setNodes([...layoutedNodes]); 
   }, [nodes, edges, setNodes]); 
 
-  // --- New Double Click Handler ---
-  const onNodeDoubleClick: NodeMouseHandler = useCallback((event, node) => {
-    openNodeForm(node); // Open form in edit mode for the double-clicked node
-  }, [openNodeForm]); // Dependency on the form opening function
+  // --- Re-add onConnect Handler ---
+  const onConnect = useCallback(
+    (params: Edge | Connection) => 
+      setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions, data: { details: '' } }, eds)),
+    [setEdges],
+  );
+
+  // --- Keyboard Event Listener for Copy/Paste --- 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      console.log('Key pressed:', event.key, 'Ctrl/Meta:', event.ctrlKey || event.metaKey); 
+      const target = event.target as HTMLElement;
+      const isInputFocused = target.tagName === 'INPUT' || 
+                             target.tagName === 'TEXTAREA' || 
+                             target.tagName === 'SELECT' || 
+                             target.isContentEditable || 
+                             target.closest('form');
+      if (isInputFocused) {
+          console.log('Input focused, ignoring copy/paste.'); 
+          return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+        console.log('Attempting copy...'); 
+        handleCopy();
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
+        console.log('Attempting paste...'); 
+        handlePaste();
+      }
+      // Optional: Delete on Backspace/Delete key
+      // if ((event.key === 'Backspace' || event.key === 'Delete') && selectedNodes.length > 0) {
+      //     handleDeleteSelectedNodes();
+      // }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [handleCopy, handlePaste, handleDeleteSelectedNodes, selectedNodes]);
 
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
@@ -321,7 +420,7 @@ function App() {
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh' }}>
+    <div style={{ display: 'flex', height: '100vh' }} ref={reactFlowWrapper}>
       <div style={reactFlowWrapperStyle}> 
         <ReactFlow
           nodes={nodes} 
@@ -338,14 +437,11 @@ function App() {
           selectionOnDrag={true} // Enable drag selection box
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
         >
-          {/* Conditionally render the NodeForm, passing edit info */}
           {isFormVisible && (
             <NodeForm 
-              // Key prop helps React reset form state when switching between add/edit
               key={editingNode ? `edit-${editingNode.id}` : 'add'} 
-              initialData={editingNode?.data || null} // Pass initial data if editing
-              isEditing={!!editingNode} // Pass editing flag
-              // Decide which submit handler to use based on editing state
+              initialData={editingNode?.data || null}
+              isEditing={!!editingNode}
               onSubmit={editingNode ? handleUpdateNode : handleAddNode} 
               onCancel={handleCancelForm} 
             />
@@ -353,17 +449,27 @@ function App() {
         </ReactFlow>
       </div>
       <Sidebar 
-        selectedNode={selectedNode} 
+        selectedNodes={selectedNodes}
         selectedEdge={selectedEdge}
         nodes={nodes} 
         edges={edges} 
         setEdges={setEdges}
-        onAddNodeClick={() => openNodeForm()} // Call without arg for adding
-        onEditNodeClick={(node) => openNodeForm(node)} // Call with node for editing
+        onAddNodeClick={() => openNodeForm()}
+        onEditNodeClick={selectedNodes.length === 1 ? () => openNodeForm(selectedNodes[0]) : undefined}
+        onDeleteNodesClick={handleDeleteSelectedNodes}
         onLayoutClick={handleLayout}      
       />
     </div>
   );
 }
 
-export default App;
+// Wrap App with ReactFlowProvider 
+function AppWrapper() {
+  return (
+    <ReactFlowProvider>
+      <App />
+    </ReactFlowProvider>
+  )
+}
+
+export default AppWrapper;
