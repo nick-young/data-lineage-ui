@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 // Import new config structure and helpers
 import { 
-  entityConfig, 
+  // entityConfig, // Remove unused import
   getEntityNames, 
   getTypesForEntity, 
   getSubTypesForType,
-  TypeConfig,
-  SubTypeConfig
+  // TypeConfig, // Remove unused import
+  // SubTypeConfig // Remove unused import
 } from './config/nodeTypesConfig';
 
 // Import NodeData type from App or define it consistently
