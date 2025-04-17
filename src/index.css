@@ -1,12 +1,10 @@
+/* Styles inspired by OpenMetadata variables.less */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', sans-serif; /* Use Inter font */
   line-height: 1.5;
   font-weight: 400;
-
-  /* Force light theme colors */
-  color: #213547; 
-  background-color: #ffffff;
-
+  color: #333; /* Default dark text color */
+  background-color: #f8f9fa; /* Light grey background like OM */
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -15,18 +13,16 @@
 
 a {
   font-weight: 500;
-  /* Use a slightly darker link color for light background */
-  color: #646cff; 
+  color: #0950c5; /* OM Blue */
   text-decoration: inherit;
 }
 a:hover {
-  /* Darker hover color */
-  color: #535bf2; 
+  color: #175cd3; /* Slightly darker OM blue */
 }
 
 html, 
 body,
-#root {
+#root { 
   height: 100%;
   margin: 0;
   padding: 0;
@@ -42,25 +38,61 @@ h1 {
 }
 
 button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
+  border-radius: 4px; /* Slightly smaller radius */
+  border: 1px solid #D5D7DA; /* Light border color */
+  padding: 0.5em 1em; /* Adjust padding (similar to @size-xs/@size-sm) */
+  font-size: 0.9em; /* Slightly smaller font */
   font-weight: 500;
   font-family: inherit;
-  /* Use light background for buttons */
-  background-color: #f9f9f9; 
-  color: #213547; /* Ensure button text is visible */
+  background-color: #ffffff; /* White background */
+  color: #333; /* Dark text */
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition: border-color 0.25s, background-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #0950c5; /* OM Blue */
+  background-color: #f8f9fa; /* Light hover */
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  outline: 2px auto #0950c5;
+  outline-offset: 1px;
 }
 
-/* Remove the prefers-color-scheme media query */
-/* @media (prefers-color-scheme: light) { ... } */
+/* Remove potentially unused default styles */
+/* .card { padding: 2em; } */
+/* .read-the-docs { color: #888; } */
+
+/* --- NodeForm Input/Button Enhancements --- */
+
+.node-form-input,
+.node-form-select,
+.node-form-textarea {
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.node-form-input:focus,
+.node-form-select:focus,
+.node-form-textarea:focus {
+  border-color: #0950c5; /* OM Blue */
+  box-shadow: 0 0 0 2px rgba(9, 80, 197, 0.2); 
+  outline: none;
+}
+
+.node-form-button-secondary {
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.node-form-button-secondary:hover {
+  background-color: #f8f9fa; /* Light hover */
+  border-color: #adb5bd; /* Slightly darker border on hover */
+}
+
+.node-form-button-primary {
+   transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+}
+
+.node-form-button-primary:hover {
+  background-color: #0742a3; /* Darker blue on hover */
+  border-color: #0742a3;
+}

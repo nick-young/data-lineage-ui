@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react'; // Import useEffect
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position
 import 'reactflow/dist/style.css';
+import dagre from 'dagre'; // Import dagre
 
 import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar from './Sidebar'; // Import the Sidebar component
@@ -10,15 +11,18 @@ import './App.css';
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
 
-// Node data type (ensure consistency or create a shared type later)
+// Node data type - Reflect new hierarchy
 interface NodeData {
-  label: string;
-  type: string;
+  label: string;      // User-defined name
+  entity: string;     // Broad category (e.g., Database)
+  type: string;       // Specific tech (e.g., MySQL)
+  subType?: string;    // Specific object type (e.g., Table)
   domain?: string;
   owner?: string;
   description?: string;
   transformations?: string;
   filters?: string;
+  // context?: string; // Context might be derived from entity/type now
 }
 
 // Edge data type
@@ -26,10 +30,12 @@ interface EdgeData {
   details?: string;
 }
 
-// Type for form data submission
+// Type for form data submission - Reflect new hierarchy
 interface NodeFormData {
   label: string;
-  type: string;
+  entity: string; // Added
+  type: string;   // Added
+  subType?: string; // Added
   domain: string;
   owner: string;
   description: string;
@@ -52,26 +58,50 @@ const initialNodesData: Node<NodeData>[] = (() => {
   return [
     {
       id: '1',
-      type: 'custom', // Use the custom node type
-      data: { label: 'Orders Table', type: 'Database Table' },
+      type: 'custom', 
+      data: { 
+        label: 'Orders Table', 
+        entity: 'Database',       // New field
+        type: 'Redshift',         // New field (example)
+        subType: 'Table', 
+        // context: 'ecommerce_db / public' // Removed, can derive if needed
+        domain: 'ecommerce_db',
+      },
       position: { x: 100, y: 100 },
     },
     {
       id: '2',
       type: 'custom',
-      data: { label: 'Orders ETL', type: 'Airflow Pipeline' },
+      data: { 
+        label: 'Orders ETL', 
+        entity: 'Pipeline',       // New field
+        type: 'Airflow',          // New field
+        // subType: 'Pipeline',  // Example if pipelines had subTypes
+        domain: 'airflow_prod',
+      }, 
       position: { x: 400, y: 100 },
     },
     {
       id: '3',
       type: 'custom',
-      data: { label: 'User Data Topic', type: 'Kafka Topic' },
+      data: { 
+        label: 'User Data Topic', 
+        entity: 'Stream',         // New field
+        type: 'Kafka',            // New field
+        subType: 'Topic', 
+        domain: 'kafka_cluster_1',
+      },
       position: { x: 100, y: 300 },
     },
     {
       id: '4',
       type: 'custom',
-      data: { label: 'Reporting API', type: 'API' },
+      data: { 
+        label: 'Reporting API', 
+        entity: 'API',            // New field
+        type: 'Generic API',      // New field
+        domain: 'reporting_service',
+      }, 
       position: { x: 400, y: 300 },
     },
   ];
@@ -105,15 +135,64 @@ let idCounter = initialNodesData.reduce((maxId, node) => {
 }, 0) + 1; // Start from max existing ID + 1
 const getNextNodeId = () => `node_${idCounter++}`;
 
-function App() {
-  // State management for nodes and edges using React Flow hooks
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodesData);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData>(initialEdgesData); // Specify EdgeData type
+// --- Constants and Setup ---
+const EDGE_COLOR = '#adb5bd'; // Light grey for edges
+const BACKGROUND_COLOR = '#f8f9fa'; // Very light grey background
+const DOT_PATTERN_COLOR = '#e0e0e0'; // Color for the dots
 
-  // State for the selected node and edge
+// Default options for new edges - Changed type to bezier
+const defaultEdgeOptions = {
+  style: { strokeWidth: 1.5, stroke: EDGE_COLOR },
+  type: 'bezier', // Use Bezier curves
+  markerEnd: {
+    type: MarkerType.ArrowClosed,
+    color: EDGE_COLOR,
+    width: 15,
+    height: 15,
+  },
+};
+
+// --- Dagre Layout Setup ---
+const dagreGraph = new dagre.graphlib.Graph();
+dagreGraph.setDefaultEdgeLabel(() => ({}));
+const NODE_WIDTH = 200; // Approx width based on CustomNode style
+const NODE_HEIGHT = 70;  // Approx height based on CustomNode style
+
+const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => {
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
+
+  nodes.forEach((node) => {
+    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+  });
+
+  edges.forEach((edge) => {
+    dagreGraph.setEdge(edge.source, edge.target);
+  });
+
+  dagre.layout(dagreGraph);
+
+  const layoutedNodes = nodes.map((node) => {
+    const nodeWithPosition = dagreGraph.node(node.id);
+    // We need to center the node relative to the dagre layout coordinates
+    const newPosition = {
+      x: nodeWithPosition.x - NODE_WIDTH / 2,
+      y: nodeWithPosition.y - NODE_HEIGHT / 2,
+    };
+
+    return { ...node, position: newPosition };
+  });
+
+  return layoutedNodes; // Only need to return nodes, edges don't change
+};
+// --------------------------
+
+function App() {
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodesData);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData>(initialEdgesData);
   const [selectedNode, setSelectedNode] = useState<Node<NodeData> | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null); // State for selected edge
-  const [isFormVisible, setIsFormVisible] = useState(false); // State for form visibility
+  const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null);
+  const [isFormVisible, setIsFormVisible] = useState(false);
+  const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); // State for node being edited
 
   // --- Save nodes and edges to Local Storage on change ---
   useEffect(() => {
@@ -162,21 +241,30 @@ function App() {
     setSelectedEdge(null); // Deselect edge on pane click
   }, []);
 
-  // Function to open the form
-  const showAddNodeForm = useCallback(() => {
+  // --- Form Handling ---
+  // Function to open the form for adding (no arg) or editing (with node)
+  const openNodeForm = useCallback((nodeToEdit?: Node<NodeData>) => {
+    setEditingNode(nodeToEdit || null);
     setIsFormVisible(true);
   }, []);
 
-  // Function to handle form submission
+  const handleCancelForm = useCallback(() => {
+    setIsFormVisible(false);
+    setEditingNode(null); // Clear editing state on cancel
+  }, []);
+
+  // Handle ADDING a new node
   const handleAddNode = useCallback((formData: NodeFormData) => {
     const newNodeId = getNextNodeId();
     const newNode: Node<NodeData> = {
       id: newNodeId,
       type: 'custom',
-      position: { x: Math.random() * 400, y: Math.random() * 400 }, // Adjust positioning later
+      position: { x: Math.random() * 400, y: Math.random() * 400 }, 
       data: { 
         label: formData.label, 
-        type: formData.type,
+        entity: formData.entity, 
+        type: formData.type,     
+        subType: formData.subType,
         domain: formData.domain,
         owner: formData.owner,
         description: formData.description,
@@ -185,25 +273,64 @@ function App() {
       },
     };
     setNodes((nds) => nds.concat(newNode));
-    setIsFormVisible(false); // Hide form after submission
-  }, [setNodes]);
+    handleCancelForm(); // Close form and clear editing state
+  }, [setNodes, handleCancelForm]);
 
-  // Function to handle form cancellation
-  const handleCancelForm = useCallback(() => {
-    setIsFormVisible(false);
-  }, []);
+  // Handle UPDATING an existing node
+  const handleUpdateNode = useCallback((formData: NodeFormData) => {
+    if (!editingNode) return; // Should not happen if form logic is correct
 
-  // Handler for connecting nodes (needed for useEdgesState)
+    setNodes((nds) =>
+      nds.map((node) => {
+        if (node.id === editingNode.id) {
+          // Return a new node object with updated data
+          return { 
+            ...node, 
+            data: { 
+              label: formData.label, 
+              entity: formData.entity, 
+              type: formData.type,     
+              subType: formData.subType,
+              domain: formData.domain,
+              owner: formData.owner,
+              description: formData.description,
+              transformations: formData.transformations,
+              filters: formData.filters,
+             } 
+          };
+        }
+        return node;
+      })
+    );
+    handleCancelForm(); // Close form and clear editing state
+  }, [editingNode, setNodes, handleCancelForm]);
+
+  // Handler for connecting nodes
   const onConnect = useCallback(
     (params: Edge | Connection) => 
-      setEdges((eds) => addEdge({ ...params, data: { details: '' } }, eds)),
+      // Use default edge options for styling new edges
+      setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions, data: { details: '' } }, eds)),
     [setEdges],
   );
 
+  // --- Layout Handler - Updated to accept direction ---
+  const handleLayout = useCallback((direction: string) => {
+    const layoutedNodes = getLayoutedElements(nodes, edges, direction);
+    setNodes([...layoutedNodes]); 
+  }, [nodes, edges, setNodes]); 
+
+  // --- Styles ---
+  const reactFlowWrapperStyle: React.CSSProperties = {
+    flexGrow: 1,
+    position: 'relative',
+    background: BACKGROUND_COLOR, 
+    backgroundImage: `radial-gradient(${DOT_PATTERN_COLOR} 1px, transparent 1px)`,
+    backgroundSize: '15px 15px',
+  };
+
   return (
     <div style={{ display: 'flex', height: '100vh' }}>
-      {/* Rely solely on flexGrow for sizing */}
-      <div style={{ flexGrow: 1, position: 'relative' }}> 
+      <div style={reactFlowWrapperStyle}> 
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
@@ -212,33 +339,34 @@ function App() {
           onConnect={onConnect}       
           nodeTypes={nodeTypes} 
           onNodeClick={onNodeClick} 
-          onEdgeClick={onEdgeClick} // Add edge click handler
+          onEdgeClick={onEdgeClick}
           onPaneClick={onPaneClick} 
           fitView 
+          defaultEdgeOptions={defaultEdgeOptions}
         >
-          {/* Add React Flow Background */}
-          <Background /> 
-          
-          {/* Add Button top-left */}
-          <button 
-            onClick={showAddNodeForm} 
-            style={{ position: 'absolute', top: 10, left: 10, zIndex: 4 }}
-          >
-            Add Node
-          </button>
-          {/* Conditionally render the NodeForm */}
+          {/* Conditionally render the NodeForm, passing edit info */}
           {isFormVisible && (
-            <NodeForm onSubmit={handleAddNode} onCancel={handleCancelForm} />
+            <NodeForm 
+              // Key prop helps React reset form state when switching between add/edit
+              key={editingNode ? `edit-${editingNode.id}` : 'add'} 
+              initialData={editingNode?.data || null} // Pass initial data if editing
+              isEditing={!!editingNode} // Pass editing flag
+              // Decide which submit handler to use based on editing state
+              onSubmit={editingNode ? handleUpdateNode : handleAddNode} 
+              onCancel={handleCancelForm} 
+            />
           )}
         </ReactFlow>
       </div>
-      {/* Render the sidebar */} 
       <Sidebar 
         selectedNode={selectedNode} 
-        selectedEdge={selectedEdge} // Pass selected edge
+        selectedEdge={selectedEdge}
         nodes={nodes} 
         edges={edges} 
-        setEdges={setEdges}      // Pass setEdges
+        setEdges={setEdges}
+        onAddNodeClick={() => openNodeForm()} // Call without arg for adding
+        onEditNodeClick={(node) => openNodeForm(node)} // Call with node for editing
+        onLayoutClick={handleLayout}      
       />
     </div>
   );
