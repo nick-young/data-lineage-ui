@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, /* Background, */ /* ReactFlowInstance, */ MarkerType, ReactFlowProvider, useReactFlow /*, MiniMap, Controls */ } from 'reactflow'; // Removed more unused imports
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, /* Background, */ /* ReactFlowInstance, */ MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange /*, MiniMap, Controls */ } from 'reactflow'; // Removed more unused imports
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
 import * as htmlToImage from 'html-to-image'; // Added
@@ -155,14 +155,17 @@ const defaultEdgeOptions = {
 // --- Dagre Layout Setup ---
 const dagreGraph = new dagre.graphlib.Graph();
 dagreGraph.setDefaultEdgeLabel(() => ({}));
-const NODE_WIDTH = 200; // Approx width based on CustomNode style
-const NODE_HEIGHT = 70;  // Approx height based on CustomNode style
+const DEFAULT_NODE_WIDTH = 200; // Fallback width if node.width isn't available
+const DEFAULT_NODE_HEIGHT = 80;  // Fallback height if node.height isn't available
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
-  dagreGraph.setGraph({ rankdir: direction, nodesep: 50, ranksep: 80 });
+  dagreGraph.setGraph({ rankdir: direction, nodesep: 70, ranksep: 100 });
 
   nodes.forEach((node) => {
-    dagreGraph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    // Use actual node dimensions if available, otherwise use defaults
+    const nodeWidth = node.width || DEFAULT_NODE_WIDTH;
+    const nodeHeight = node.height || DEFAULT_NODE_HEIGHT;
+    dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
   });
 
   edges.forEach((edge) => {
@@ -173,16 +176,17 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    // We need to center the node relative to the dagre layout coordinates
+    // Use actual node dimensions (or defaults) for centering calculation
+    const nodeWidth = node.width || DEFAULT_NODE_WIDTH;
+    const nodeHeight = node.height || DEFAULT_NODE_HEIGHT;
     const newPosition = {
-      x: nodeWithPosition.x - NODE_WIDTH / 2,
-      y: nodeWithPosition.y - NODE_HEIGHT / 2,
+      x: nodeWithPosition.x - nodeWidth / 2,
+      y: nodeWithPosition.y - nodeHeight / 2,
     };
-
-    return { ...node, position: newPosition };
+    return { id: node.id, position: newPosition }; 
   });
 
-  return layoutedNodes; // Only need to return nodes, edges don't change
+  return layoutedNodes; 
 };
 // --------------------------
 
@@ -392,8 +396,31 @@ function App() {
 
   // --- Layout Handler ---
   const handleLayoutNodes = useCallback((direction: string = 'LR') => {
-    const layoutedNodes = getLayoutedElements(nodes, edges, direction);
-    setNodes([...layoutedNodes]); 
+    const layoutedNodePositions = getLayoutedElements(nodes, edges, direction);
+    
+    // Map layout results to NodePositionChange objects
+    const positionChanges: NodePositionChange[] = layoutedNodePositions.map(nodePos => ({
+        id: nodePos.id,
+        type: 'position',
+        position: nodePos.position,
+        dragging: false, // Ensure dragging state is reset
+    }));
+
+    // Apply the changes using setNodes
+    // This approach lets React Flow handle the update process internally
+    setNodes((currentNodes) => {
+        const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
+        positionChanges.forEach(change => {
+            const node = nodeMap.get(change.id);
+            if (node && change.position) {
+                node.position = change.position;
+                node.positionAbsolute = change.position; // Update absolute position too
+                node.dragging = change.dragging;
+            }
+        });
+        return Array.from(nodeMap.values());
+    });
+
   }, [nodes, edges, setNodes]); 
 
   // --- Re-add onConnect Handler ---
