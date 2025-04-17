@@ -1,7 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport } from 'reactflow'; // Import NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, Background, ReactFlowInstance, MarkerType, Position, NodeChange, applyNodeChanges, ReactFlowProvider, useReactFlow, Viewport
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
+import * as htmlToImage from 'html-to-image'; // Added
 
 import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar from './Sidebar'; // Import the Sidebar component
@@ -188,6 +189,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
   const [nodes, setNodes, onNodesChangeOriginal] = useNodesState(initialNodesData);
   const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData>(initialEdgesData);
   const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null);
@@ -402,6 +404,88 @@ function App() {
     };
   }, [handleCopy, handlePaste, handleDeleteSelectedNodes, selectedNodes]);
 
+  // --- Save PNG Handler (Simplified) ---
+  const handleSavePNG = useCallback(() => {
+    // Target the viewport for reliable capture of visible area
+    const flowPane = document.querySelector('.react-flow__viewport') as HTMLElement;
+    if (!flowPane) {
+      console.error('React Flow viewport not found!');
+      return;
+    }
+
+    htmlToImage.toPng(flowPane, {
+        pixelRatio: 1.5, 
+        backgroundColor: '#ffffff', // Explicit white background
+        filter: (domNode) => {
+           // Filter out controls, minimap, attribution
+           if (domNode?.classList?.contains('react-flow__controls') ||
+               domNode?.classList?.contains('react-flow__minimap') ||
+               domNode?.classList?.contains('react-flow__attribution')
+            ) {
+             return false;
+           }
+           return true;
+         }
+      })
+      .then((dataUrl) => {
+        downloadFile(dataUrl, 'data-lineage-flow.png');
+      })
+      .catch((error) => {
+        console.error('Failed to save PNG:', error);
+        alert('Error saving PNG.');
+      });
+  }, []); // Removed dependencies as we only use document query
+
+  // --- Save Flow Handler (JSON) ---
+  const handleSaveFlow = useCallback(() => {
+    const currentViewport = reactFlowInstance.getViewport();
+    const flowData = {
+      nodes: nodes,
+      edges: edges,
+      viewport: currentViewport,
+    };
+    const dataStr = JSON.stringify(flowData, null, 2); // Pretty print JSON
+    const dataUrl = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    downloadFile(dataUrl, 'data-lineage-flow.json');
+  }, [nodes, edges, reactFlowInstance]);
+
+  // --- Load Flow Trigger (clicks hidden input) ---
+  const handleLoadFlowTrigger = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
+
+  // --- Load Flow Handler (reads file) ---
+  const handleLoadFlow = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const flowData = JSON.parse(e.target?.result as string);
+        if (flowData && Array.isArray(flowData.nodes) && Array.isArray(flowData.edges) && flowData.viewport) {
+          // Basic validation passed
+          setNodes(flowData.nodes);
+          setEdges(flowData.edges);
+          reactFlowInstance.setViewport(flowData.viewport, { duration: 300 }); 
+          console.log('Flow loaded successfully!');
+        } else {
+          console.error('Invalid flow file format.');
+          alert('Error: Invalid flow file format.');
+        }
+      } catch (error) {
+        console.error('Failed to parse flow file:', error);
+        alert('Error: Could not read or parse the flow file.');
+      }
+    };
+    reader.onerror = (error) => {
+        console.error('Error reading file:', error);
+        alert('Error: Could not read the file.');
+    }
+    reader.readAsText(file);
+    event.target.value = ''; // Reset file input
+  }, [setNodes, setEdges, reactFlowInstance]);
+
   // --- Styles ---
   const reactFlowWrapperStyle: React.CSSProperties = {
     flexGrow: 1,
@@ -428,6 +512,7 @@ function App() {
           panOnDrag={[2]} // Enable panning only with Right mouse button
           selectionOnDrag={true} // Enable drag selection box
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
+          proOptions={{ hideAttribution: true }}
         >
           {isFormVisible && (
             <NodeForm 
@@ -449,7 +534,16 @@ function App() {
         onAddNodeClick={() => openNodeForm()}
         onEditNodeClick={selectedNodes.length === 1 ? () => openNodeForm(selectedNodes[0]) : undefined}
         onDeleteNodesClick={handleDeleteSelectedNodes}
-        onLayoutClick={handleLayout}      
+        onSavePNG={handleSavePNG}
+        onSaveFlow={handleSaveFlow}
+        onLoadFlowTrigger={handleLoadFlowTrigger}
+      />
+      <input 
+        type="file"
+        ref={fileInputRef}
+        style={{ display: 'none' }} 
+        accept=".json"
+        onChange={handleLoadFlow}
       />
     </div>
   );
@@ -462,6 +556,15 @@ function AppWrapper() {
       <App />
     </ReactFlowProvider>
   )
+}
+
+// --- Helper function to trigger file download ---
+function downloadFile(dataUrl: string, filename: string) {
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = dataUrl;
+  link.click();
+  link.remove();
 }
 
 export default AppWrapper;

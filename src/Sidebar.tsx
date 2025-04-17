@@ -27,7 +27,9 @@ interface SidebarProps {
   onAddNodeClick: () => void;
   onEditNodeClick?: (node: Node<NodeData>) => void;
   onDeleteNodesClick: () => void;
-  onLayoutClick: (direction: string) => void;
+  onSavePNG: () => void;
+  onSaveFlow: () => void;
+  onLoadFlowTrigger: () => void;
 }
 
 // Styles inspired by OM
@@ -169,7 +171,9 @@ const Sidebar: React.FC<SidebarProps> = ({
   onAddNodeClick,
   onEditNodeClick,
   onDeleteNodesClick,
-  onLayoutClick
+  onSavePNG,
+  onSaveFlow,
+  onLoadFlowTrigger
 }) => {
 
   // --- Determine single selected node for details/edit --- 
@@ -374,24 +378,33 @@ const Sidebar: React.FC<SidebarProps> = ({
             Edit Node
           </button>
         )}
-        {selectedNodes.length > 0 && (
-           <button 
-            onClick={onDeleteNodesClick}
-            style={{...secondarySidebarButtonStyle, color: '#dc3545', borderColor: '#dc3545'}}
-          >
-            Delete Selected ({selectedNodes.length})
-          </button>
-        )}
-        <button 
-          onClick={() => onLayoutClick('LR')}
-          style={secondarySidebarButtonStyle}
-          title="Apply Left-to-Right Layout"
-        >
-          Layout Nodes
-        </button>
       </div>
 
       {content}
+
+      <div style={{...sidebarControlsStyle, borderBottom: 'none', borderTop: '1px solid #E9EAEB', paddingTop: '15px', marginTop: 'auto'}}>
+         <button 
+          onClick={onSavePNG}
+          style={secondarySidebarButtonStyle}
+          title="Save view as PNG image"
+        >
+          Save PNG
+        </button>
+        <button 
+          onClick={onSaveFlow}
+          style={secondarySidebarButtonStyle}
+          title="Save nodes and edges to a JSON file"
+        >
+          Save Flow
+        </button>
+         <button 
+          onClick={onLoadFlowTrigger}
+          style={secondarySidebarButtonStyle}
+          title="Load nodes and edges from a JSON file"
+        >
+          Load Flow
+        </button>
+      </div>
     </div>
   );
 };
