@@ -123,9 +123,10 @@ const initialEdgesData: Edge<EdgeData>[] = (() => {
 })();
 // --------------------------------------------------------------
 
-// Moved nodeTypes outside the component to fix warning 002
+// Original nodeTypes (No GroupNode)
 const nodeTypes = {
   custom: CustomNode,
+  // group: GroupNode, // <-- Remove GroupNode registration
 };
 
 // Adjust ID counter based on loaded nodes

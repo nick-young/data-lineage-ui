@@ -1,6 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Node, Edge } from 'reactflow';
 import { NodeData, EdgeData } from './App';
+import { version } from '../../package.json'; // Import version
 
 // Define the expected data structure for the selected node
 /* 
@@ -112,12 +113,13 @@ const valueStyle: React.CSSProperties = {
   wordBreak: 'break-word', // Allow long values to wrap
 };
 
-// Style for descriptive paragraphs (like description, filters etc)
+// Style for description paragraphs
 const descriptionParagraphStyle: React.CSSProperties = {
-    margin: '4px 0 8px 0', 
-    lineHeight: 1.5, 
-    color: '#333', // Ensure standard text color
-    wordBreak: 'break-word', 
+  margin: '0 0 10px 0', // Bottom margin
+  fontSize: '13px',
+  lineHeight: '1.5',
+  color: '#495057', 
+  whiteSpace: 'pre-wrap', // <-- Re-add this property
 };
 
 const listStyle: React.CSSProperties = {
@@ -204,6 +206,30 @@ const topControlsStyle: React.CSSProperties = {
   marginBottom: '20px', // Space below buttons
   paddingBottom: '15px', // Space above border
   borderBottom: '1px solid #E9EAEB', // Separator line
+};
+
+// --- Style for Footer Elements ---
+const footerContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  padding: '10px 15px', // Add padding similar to other controls
+  borderTop: '1px solid #dee2e6', 
+  fontSize: '12px',
+  color: '#6c757d', // Muted color
+};
+
+const githubLinkStyle: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  textDecoration: 'none',
+  color: 'inherit',
+};
+
+const githubIconStyle: React.CSSProperties = {
+  width: '16px',
+  height: '16px',
+  marginRight: '5px',
 };
 
 const Sidebar: React.FC<SidebarProps> = ({ 
@@ -453,15 +479,12 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* --- Separator --- */}
           <hr style={separatorStyle} />
 
-          {/* --- Bottom Controls (Save / Load) --- */}
+          {/* --- Bottom Buttons Area --- */}
           <div style={{
             ...sidebarControlsStyle, 
-            borderBottom: 'none', 
-            borderTop: '1px solid #E9EAEB', 
-            paddingTop: '15px', 
-            marginTop: 'auto',
-            paddingLeft: '10px',
-            paddingRight: '10px'
+            borderBottom: 'none', // Remove bottom border here, it will be on the footer
+            marginBottom: 0, // Remove margin, footer will handle spacing
+            paddingBottom: 0, // Remove padding, footer will handle spacing
           }}>
             <button 
               onClick={onSavePNG}
@@ -484,6 +507,20 @@ const Sidebar: React.FC<SidebarProps> = ({
             >
               Load Flow
             </button>
+          </div>
+
+          {/* --- Footer Area --- */}
+          <div style={footerContainerStyle}>
+            <span>v{version}</span>
+            <a 
+              href="https://github.com/nick-young/data-lineage-ui" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              style={githubLinkStyle}
+              title="View on GitHub"
+            >
+              <img src="/assets/github-mark.svg" alt="GitHub" style={githubIconStyle} />
+            </a>
           </div>
         </>
       )}
