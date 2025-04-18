@@ -48,7 +48,7 @@ This project provides a user interface for visualizing data lineage using React 
     ```
 
 4.  **Open the application:**
-    Navigate to `http://localhost:5173` (or the port specified in the terminal output) in your web browser.
+    Navigate to http://localhost:5173 (or the port specified in the terminal output) in your web browser.
 
 ## Deployment to GitHub Pages
 
@@ -85,7 +85,7 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
     *(Note: Use `docker-compose` with a hyphen if the command above fails)*
 
 3.  **Open the application:**
-    Navigate to `http://localhost:5173` in your web browser.
+    Navigate to http://localhost:5174 in your web browser.
 
 4.  **To stop the container:**
     ```bash
