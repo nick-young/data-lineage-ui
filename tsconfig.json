@@ -25,7 +25,8 @@
     /* Extra settings for CSS and asset imports */
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
-    "baseUrl": "."
+    "baseUrl": ".",
+    "types": ["vite/client", "node"]
   },
   "include": ["src", "vite.config.ts", "src/**/*.css"],
   "exclude": ["node_modules", "dist"],
