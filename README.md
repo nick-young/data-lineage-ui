@@ -15,7 +15,7 @@ This project provides a user interface for visualizing data lineage using React 
     *   Delete single or multiple selected nodes.
     *   Copy (Ctrl/Cmd+C) and Paste (Ctrl/Cmd+V) nodes.
 *   **Custom Nodes:** Visually distinct nodes showing key information (Label, Entity, Type, SubType).
-    *   Icons are dynamically assigned based on the node's Entity and Type (configured in `src/config/nodeTypesConfig.ts`, using icons from `src/assets/`).
+    *   Icons are dynamically assigned based on the node's Entity and Type (configured in `src/config/nodeTypesConfig.ts`, using icons from `public/assets/om-icons/`).
 *   **Edge Management:**
     *   Connect nodes to represent relationships.
     *   View and edit relationship details by selecting an edge.
@@ -48,7 +48,26 @@ This project provides a user interface for visualizing data lineage using React 
     ```
 
 4.  **Open the application:**
-    Navigate to `http://localhost:5174` (or the port specified in the terminal output) in your web browser.
+    Navigate to `http://localhost:5173` (or the port specified in the terminal output) in your web browser.
+
+## Deployment to GitHub Pages
+
+To deploy the latest version of the application to the live GitHub Pages site:
+
+1.  **Navigate to the UI directory:**
+    ```bash
+    cd data-lineage-ui
+    ```
+
+2.  **Run the deployment script:**
+    ```bash
+    npm run deploy
+    ```
+    This script will:
+    *   Run `npm run build` to create a production build in the `dist` directory.
+    *   Use the `gh-pages` package to push the contents of the `dist` directory to the `gh-pages` branch of your repository.
+
+GitHub Pages is configured to serve from the `gh-pages` branch, so this command updates the live site.
 
 ## Running with Docker (Alternative)
 
@@ -66,7 +85,7 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
     *(Note: Use `docker-compose` with a hyphen if the command above fails)*
 
 3.  **Open the application:**
-    Navigate to `http://localhost:5174` in your web browser.
+    Navigate to `http://localhost:5173` in your web browser.
 
 4.  **To stop the container:**
     ```bash
@@ -79,8 +98,8 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
 *   Uses React Flow for the graph visualization and interaction.
 *   Uses Dagre for automatic layout.
 *   State is primarily managed within the `App.tsx` component using React hooks (`useState`, `useCallback`, `useMemo`, `useEffect`).
-*   Node icons are configured in `src/config/nodeTypesConfig.ts` and sourced from `src/assets/`.
-*   Initial node/edge data and subsequent changes are persisted to Local Storage.
+*   Node icons are configured in `src/config/nodeTypesConfig.ts` and sourced from `public/assets/om-icons/`.
+*   The `public` directory is served at the root by Vite.
 
 ## Versioning
 
@@ -108,24 +127,6 @@ This project uses [`standard-version`](https://github.com/conventional-changelog
     git push --follow-tags origin <your-branch-name>
     ```
 
-## Features Implemented (MVP)
-
-*   **Visual Graph Canvas:** Renders nodes and edges using React Flow.
-*   **Node Rendering:** Displays nodes with labels and type information using a custom node component.
-*   **Node Selection:** Allows selecting nodes to view their properties in a sidebar.
-*   **Node Creation:** Provides an "Add Node" button and a modal form to create new nodes with properties:
-    *   Name (Label)
-    *   Type (Dropdown: API, Database Table, Airflow Pipeline, Storage (S3), Kafka Topic, External System)
-    *   Domain
-    *   Owner
-    *   Description
-    *   Transformations
-    *   Filters
-*   **Edge Creation:** Allows connecting nodes via drag-and-drop between handles.
-*   **Relationship Details:** Allows selecting edges to view source/target information and add/edit free-text details in the sidebar.
-*   **Sidebar Display:** Shows details for the currently selected node or edge, including dynamically calculated inputs/outputs for nodes.
-*   **Local Storage Persistence:** Saves the graph state (nodes and edges, including edge details) to the browser's local storage, so the graph persists across page refreshes.
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -140,5 +141,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 *   Version history for graphs.
 *   More sophisticated layout algorithms.
 *   Node grouping/layering.
-*   Visual node icons.
 *   UI styling improvements (e.g., align with OpenMetadata theme).

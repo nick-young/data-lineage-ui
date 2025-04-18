@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange, Background, Controls } from 'reactflow'; // Re-add Background and Controls
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange, Background, Controls, MiniMap } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
 // If the import above doesn't resolve, comment it out and add a note:
 // NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
@@ -562,8 +562,9 @@ function App() {
           proOptions={{ hideAttribution: true }}
           className="bg-gray-50"
         >
-          <Background color={DOT_PATTERN_COLOR} />
           <Controls />
+          <Background />
+          <MiniMap />
           {isFormVisible && (
             <NodeForm 
               key={editingNode ? `edit-${editingNode.id}` : 'add'} 
