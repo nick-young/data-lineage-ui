@@ -1,6 +1,8 @@
 # Data Lineage UI
 
-A React-based UI for visualizing and managing data lineage graphs using React Flow.
+[View Live Demo on GitHub Pages](https://nick-young.github.io/data-lineage-ui/)
+
+This project provides a user interface for visualizing data lineage using React and ReactFlow.
 
 ![Screenshot of Data Lineage Visualiser](public/screen.png)
 
