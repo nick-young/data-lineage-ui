@@ -80,6 +80,32 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
 *   Node icons are configured in `src/config/nodeTypesConfig.ts` and sourced from `src/assets/`.
 *   Initial node/edge data and subsequent changes are persisted to Local Storage.
 
+## Versioning
+
+This project uses [`standard-version`](https://github.com/conventional-changelog/standard-version) for automated version bumping and CHANGELOG generation based on [Conventional Commits](https://www.conventionalcommits.org/).
+
+1.  **Commit Changes:** Make your code changes and commit them using the Conventional Commits format. Examples:
+    *   `git commit -m "fix: resolve sidebar layout issue"` (Patches the version)
+    *   `git commit -m "feat: add node copy/paste functionality"` (Minor version bump)
+    *   `git commit -m "refactor!: change node data structure"` (Major version bump due to BREAKING CHANGE)
+
+2.  **Run Release Script:** When ready to cut a new version, run the following command **from within the `data-lineage-ui` directory**:
+    ```bash
+    npm run release
+    ```
+    This command will:
+    *   Analyze commits since the last Git tag.
+    *   Determine the appropriate version bump (patch, minor, or major).
+    *   Update the `version` in `package.json`.
+    *   Generate/update a `CHANGELOG.md` file (if not present, may need initial configuration).
+    *   Create a new Git commit for the version bump.
+    *   Create a Git tag for the new version.
+
+3.  **Push Changes:** Push the commits and the new tag to your remote repository:
+    ```bash
+    git push --follow-tags origin <your-branch-name>
+    ```
+
 ## Features Implemented (MVP)
 
 *   **Visual Graph Canvas:** Renders nodes and edges using React Flow.
@@ -97,6 +123,10 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
 *   **Relationship Details:** Allows selecting edges to view source/target information and add/edit free-text details in the sidebar.
 *   **Sidebar Display:** Shows details for the currently selected node or edge, including dynamically calculated inputs/outputs for nodes.
 *   **Local Storage Persistence:** Saves the graph state (nodes and edges, including edge details) to the browser's local storage, so the graph persists across page refreshes.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Next Steps / Future Enhancements (From PRD)
 
