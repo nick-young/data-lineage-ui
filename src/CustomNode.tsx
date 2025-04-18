@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
+import { NodeData } from './App'; // Import NodeData type from App
 import { getIconForType /*, defaultIconUrl */ } from './config/nodeTypesConfig'; // Removed unused import
 
 // Removed direct icon imports as they come from config now
@@ -10,85 +11,29 @@ import { getIconForType /*, defaultIconUrl */ } from './config/nodeTypesConfig';
 // import ApiIconUrl from './assets/om-icons/service-icon-generic.png';
 // import DefaultIconUrl from './assets/om-icons/service-icon-generic.png';
 
-// Node data type - Reflect new hierarchy
-interface NodeData {
-  label: string; 
-  entity: string;
-  type: string; 
-  subType?: string; 
-  domain?: string;
-  owner?: string;
-  description?: string;
-  transformations?: string;
-  filters?: string;
-  // context field removed
-}
-
 // --- Styling Constants ---
 
-const NODE_BORDER_COLOR = '#E0E0E0'; // Lighter grey border
-const NODE_BORDER_COLOR_SELECTED = '#0950c5'; // Use primary blue for selected border
-const NODE_BACKGROUND = '#FFFFFF';
-const NODE_BORDER_RADIUS = '6px'; // Slightly more rounded
-const NODE_SHADOW = '0 1px 3px rgba(0,0,0,0.05)'; // Subtle shadow
-const NODE_SHADOW_SELECTED = '0 3px 8px rgba(0,0,0,0.15)'; // Stronger shadow when selected
-const TEXT_COLOR_NORMAL = '#333333';
-const TEXT_COLOR_FADED = '#757575'; // Grey for context text
-const HANDLE_SIZE = '10px';
-const HANDLE_BORDER_COLOR = '#BDBDBD'; // Light grey border for handles
+// Removed style constants, will use Tailwind classes
 
 // --- Styles ---
 
 // Icon style
-const iconStyle: React.CSSProperties = {
-  width: '28px', // Slightly larger icon
-  height: '28px',
-  flexShrink: 0,
-};
+// const iconStyle: React.CSSProperties = { ... };
 
 // Container for the text lines
-const textContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  flexDirection: 'column', // Stack text vertically
-  overflow: 'hidden', // Prevent text overflow issues
-  textAlign: 'left',
-};
+// const textContainerStyle: React.CSSProperties = { ... };
 
 // Style for the top context line (now using Entity)
-const contextTextStyle: React.CSSProperties = {
-  fontSize: '11px',
-  color: TEXT_COLOR_FADED,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-  marginBottom: '2px', // Small space below context
-};
+// const contextTextStyle: React.CSSProperties = { ... };
 
 // Style for the main label line (bold)
-const labelTextStyle: React.CSSProperties = {
-  fontSize: '13px',
-  fontWeight: 600, // Bolder label
-  color: TEXT_COLOR_NORMAL,
-  whiteSpace: 'nowrap',
-  overflow: 'hidden',
-  textOverflow: 'ellipsis',
-};
+// const labelTextStyle: React.CSSProperties = { ... };
 
 // Style for the handles
-const handleStyle: React.CSSProperties = {
-  width: HANDLE_SIZE,
-  height: HANDLE_SIZE,
-  background: NODE_BACKGROUND, // White background
-  border: `1px solid ${HANDLE_BORDER_COLOR}`, // Light grey border
-  borderRadius: '50%', // Circular
-};
+// const handleStyle: React.CSSProperties = { ... };
 
 // Style for the subType text
-const subTypeTextStyle: React.CSSProperties = {
-  fontSize: '11px',
-  color: TEXT_COLOR_FADED,
-  marginLeft: '5px', // Space between label and subType
-};
+// const subTypeTextStyle: React.CSSProperties = { ... };
 
 // --- Component Logic ---
 
@@ -97,46 +42,44 @@ const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, selected }) => {
   // Get icon based on Entity and Type from config
   const iconUrl = getIconForType(data.entity, data.type);
   // Construct context text as "Entity: Type"
-  const contextText = `${data.entity}: ${data.type}`; 
+  const contextText = `${data.entity}: ${data.type}`;
 
-  // Dynamically adjust style based on selection state
-  const nodeWrapperStyle: React.CSSProperties = {
-    background: NODE_BACKGROUND,
-    border: `1px solid ${selected ? NODE_BORDER_COLOR_SELECTED : NODE_BORDER_COLOR}`,
-    borderRadius: NODE_BORDER_RADIUS,
-    padding: '10px 15px', 
-    boxShadow: selected ? NODE_SHADOW_SELECTED : NODE_SHADOW,
-    display: 'flex',
-    alignItems: 'center', 
-    gap: '10px', 
-    minWidth: '180px',
-    transition: 'border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out', // Add transition
-  };
+  // Dynamic Tailwind classes based on selection
+  const borderClass = selected ? 'border-blue-600 ring-1 ring-blue-600' : 'border-gray-300';
+  const shadowClass = selected ? 'shadow-lg' : 'shadow-sm';
 
   return (
-    <div style={nodeWrapperStyle}>
-      {/* Input handle */}
-      <Handle type="target" position={Position.Left} style={handleStyle} />
+    <div className={`flex min-w-[180px] items-center gap-2 rounded-md border bg-white p-2 px-3 ${borderClass} ${shadowClass} transition-all duration-200 ease-in-out`}>
+      {/* Input handle - styled with Tailwind */}
+      <Handle 
+        type="target" 
+        position={Position.Left} 
+        className="h-2 w-2 rounded-full border border-gray-400 bg-white"
+      />
 
       {/* Icon */}
-      <img src={iconUrl} alt={data.type || 'Node'} style={iconStyle} />
+      <img src={iconUrl} alt={data.type || 'Node'} className="h-7 w-7 flex-shrink-0" />
 
       {/* Text Container */}
-      <div style={textContainerStyle}>
+      <div className="flex flex-col overflow-hidden text-left">
         {/* Context Line (Top) - Show "Entity: Type" */}
-        <span style={contextTextStyle}>{contextText}</span>
+        <span className="mb-0.5 truncate text-xs text-gray-500">{contextText}</span>
         
         {/* Label Line (Bottom) - Include SubType if applicable */}
-        <div style={{ display: 'flex', alignItems: 'baseline' }}> 
-          <span style={labelTextStyle}>{data.label}</span>
+        <div className="flex items-baseline"> 
+          <span className="truncate text-sm font-semibold text-gray-800">{data.label}</span>
           {data.subType && (
-            <span style={subTypeTextStyle}>({data.subType})</span>
+            <span className="ml-1 flex-shrink-0 text-xs text-gray-500">({data.subType})</span>
           )}
         </div>
       </div>
 
-      {/* Output handle */}
-      <Handle type="source" position={Position.Right} style={handleStyle} />
+      {/* Output handle - styled with Tailwind */}
+      <Handle 
+        type="source" 
+        position={Position.Right} 
+        className="h-2 w-2 rounded-full border border-gray-400 bg-white"
+      />
     </div>
   );
 };

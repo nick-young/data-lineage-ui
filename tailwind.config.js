@@ -6,19 +6,21 @@ export default {
     "./src/**/*.{js,ts,jsx,tsx}", 
     // "./src/LandingPage.tsx", // Remove specific path
   ],
-  // Temporarily comment out the theme extension
-  /*
+  // Uncomment the theme extension to use custom colors
   theme: {
     extend: {
       colors: { 
-        'primary': '#211C84',
-        'accent': '#4D55CC',
-        'accent-light': '#7A73D1',
-        'subtle-bg': '#B5A8D5',
+        'primary': '#3056D3', // Match LandingPage Hero section color
+        'blue-dark': '#1E2B40', // Example dark blue
+        'dark': '#090E34',
+        'body-color': '#637381',
+        'dark-6': '#F1F2F3',
+        // Add other colors from LandingPage if needed
+      },
+      fontFamily: {
+        inter: ['Inter', 'sans-serif'], // Add Inter font family
       }
     },
   },
-  */
-  theme: {}, // Use default theme
   plugins: [],
 } 

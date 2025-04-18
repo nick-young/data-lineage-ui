@@ -5,26 +5,14 @@ import {
   getEntityNames, 
   getTypesForEntity, 
   getSubTypesForType,
+  getIconForType // Import the icon helper
   // TypeConfig, // Remove unused import
   // SubTypeConfig // Remove unused import
 } from './config/nodeTypesConfig';
+import { NodeData } from './App'; // Use shared NodeData type
 
-// Import NodeData type from App or define it consistently
-// Assuming NodeData might be defined elsewhere or we redefine relevant part
-interface NodeDataForForm {
-  label: string;
-  entity: string; 
-  type: string;   
-  subType?: string; 
-  domain?: string; // Make optional to match NodeData
-  owner?: string;  // Make optional to match NodeData
-  description?: string; // Make optional to match NodeData
-  transformations?: string; // Make optional to match NodeData
-  filters?: string; // Make optional to match NodeData
-}
-
-// Form data structure (still requires string for inputs)
-interface NodeFormData {
+// Form data structure (used internally for state)
+interface NodeFormState {
   label: string;
   entity: string; 
   type: string;   
@@ -36,326 +24,198 @@ interface NodeFormData {
   filters: string;
 }
 
-// NodeForm Props - Accept NodeDataForForm (or NodeData directly if imported)
+// NodeForm Props - Accept NodeData directly
 interface NodeFormProps {
-  initialData?: NodeDataForForm | null; 
+  initialData?: NodeData | null; // Use NodeData from App directly
   isEditing: boolean;
-  onSubmit: (data: NodeFormData) => void;
+  onSubmit: (data: NodeData) => void; // Submit function expects NodeData
   onCancel: () => void;
 }
-
-// Modal styling refinements - Adjusted for scrolling layout
-const modalOverlayStyle: React.CSSProperties = {
-  position: 'fixed', // Use fixed to cover viewport
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  background: 'rgba(0, 0, 0, 0.4)', // Dimming overlay
-  zIndex: 9, // Below modal itself
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-};
-
-const modalStyle: React.CSSProperties = {
-  // Removed position: absolute, top, left, transform
-  background: '#ffffff',
-  // padding: '24px', // Padding moved to inner elements
-  border: '1px solid #D5D7DA',
-  borderRadius: '8px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  zIndex: 10,
-  width: '450px', // Fixed width
-  maxWidth: '90vw', // Max width relative to viewport
-  maxHeight: '85vh', // Max height relative to viewport
-  fontFamily: 'Inter, sans-serif',
-  display: 'flex', // Use flex column for header/content/footer
-  flexDirection: 'column',
-  overflow: 'hidden', // Prevent shadow clipping
-};
-
-const modalHeaderStyle: React.CSSProperties = {
-  padding: '16px 24px',
-  borderBottom: '1px solid #E9EAEB',
-  flexShrink: 0, // Header should not shrink
-};
-
-const modalTitleStyle: React.CSSProperties = {
-  margin: 0, // Remove default margins
-  color: '#1B1D21',
-  fontSize: '18px',
-  fontWeight: 600,
-};
-
-const modalContentStyle: React.CSSProperties = {
-  padding: '20px 24px', // Padding for the form content
-  overflowY: 'auto', // Make this part scrollable
-  flexGrow: 1, // Allow content to take available space
-};
-
-const modalFooterStyle: React.CSSProperties = {
-  padding: '16px 24px',
-  borderTop: '1px solid #E9EAEB',
-  textAlign: 'right',
-  display: 'flex',
-  justifyContent: 'flex-end',
-  gap: '8px',
-  flexShrink: 0, // Footer should not shrink
-};
-
-// --- Form Element Styles (mostly unchanged, just added classes) ---
-const formGroupStyle: React.CSSProperties = {
-  marginBottom: '16px',
-};
-
-const labelStyle: React.CSSProperties = {
-  display: 'block',
-  marginBottom: '6px',
-  fontWeight: 500,
-  color: '#37352F',
-  fontSize: '13px',
-};
-
-const inputBaseStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '8px 12px',
-  boxSizing: 'border-box',
-  border: '1px solid #DDE3EA',
-  borderRadius: '4px',
-  color: '#333',
-  backgroundColor: '#ffffff',
-  fontSize: '14px',
-  fontFamily: 'inherit',
-};
-
-const selectDropdownStyle: React.CSSProperties = {
-  ...inputBaseStyle,
-  appearance: 'none',
-  backgroundImage: `url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20viewBox%3D%270%200%20256%20448%27%20enable-background%3D%27new%200%200%20256%20448%27%3E%3Cstyle%20type%3D%27text%2Fcss%27%3E.arrow%7Bfill%3A%23424242%3B%7D%3C%2Fstyle%3E%3Cpath%20class%3D%27arrow%27%20d%3D%27M255.9%20168c0-4.2-1.7-7.9-4.8-11.2L137.9%2044.8c-3.1-3.1-6.8-4.8-11.2-4.8h-35.7c-4.4%200-8.1%201.7-11.2%204.8L4.8%20156.8C1.7%20160.1%200%20163.8%200%20168c0%204.4%201.7%208.1%204.8%2011.2l11.2%2011.2c3.1%203.1%206.8%204.8%2011.2%204.8h212.8c4.4%200%208.1-1.7%2011.2-4.8l11.2-11.2c3.1-3.1%204.8-6.8%204.8-11.2z%27%2F%3E%3C%2Fsvg%3E%0A")`,
-  backgroundPosition: 'right 12px center',
-  backgroundRepeat: 'no-repeat',
-  backgroundSize: '8px 10px',
-  paddingRight: '30px',
-};
-
-const buttonBaseStyle: React.CSSProperties = {
-  padding: '8px 16px',
-  border: '1px solid #D5D7DA',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 600,
-  fontSize: '13px',
-  fontFamily: 'inherit',
-};
 
 // --- Component Logic ---
 const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, onCancel }) => {
   const entityNames = getEntityNames();
   
-  // Initialize state based on initialData or defaults, handling potential undefined
-  const [selectedEntity, setSelectedEntity] = useState<string>(initialData?.entity || entityNames[0] || '');
-  const [selectedType, setSelectedType] = useState<string>(initialData?.type || '');
-  const [selectedSubType, setSelectedSubType] = useState<string>(initialData?.subType || '');
+  // Initialize state using NodeFormState structure
+  const [formData, setFormData] = useState<NodeFormState>(() => {
+    const defaults: NodeFormState = {
+      label: '', entity: entityNames[0] || '', type: '', subType: '',
+      domain: '', owner: '', description: '', transformations: '', filters: ''
+    };
+    // Merge initialData (which might have optional fields) into defaults
+    return { ...defaults, ...(initialData || {}) };
+  });
 
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [availableSubTypes, setAvailableSubTypes] = useState<string[]>([]);
 
-  // Handle potential undefined from initialData with fallback to empty string
-  const [otherFormData, setOtherFormData] = useState({
-    label: initialData?.label ?? '',
-    domain: initialData?.domain ?? '',
-    owner: initialData?.owner ?? '',
-    description: initialData?.description ?? '',
-    transformations: initialData?.transformations ?? '',
-    filters: initialData?.filters ?? '',
-  });
-
-  // Effect to update Type options when Entity changes (or on initial load)
+  // --- Effects to manage dropdowns and default label ---
+  // Effect to update Type options when Entity changes
   useEffect(() => {
-    const types = getTypesForEntity(selectedEntity).map(t => t.name);
+    const types = getTypesForEntity(formData.entity).map(t => t.name);
     setAvailableTypes(types);
-    // If not editing or type doesn't match initial, set to first available type
-    if (!isEditing || !types.includes(selectedType)) {
-      setSelectedType(types[0] || '');
+    // If editing and current type is valid for new entity, keep it, else reset
+    if (!isEditing || !types.includes(formData.type)) {
+      const newType = types[0] || '';
+      setFormData(prev => ({ ...prev, type: newType, subType: '' })); // Reset type and subType
     }
-  }, [selectedEntity, isEditing]); // Rerun if isEditing changes (e.g. form re-opens)
+  }, [formData.entity, isEditing]); // Only needs entity and isEditing
 
-  // Effect to update Sub Type options when Type changes (or on initial load)
+  // Effect to update Sub Type options when Type changes
   useEffect(() => {
-    const typeIsValidForEntity = getTypesForEntity(selectedEntity).some(t => t.name === selectedType);
-    if (!typeIsValidForEntity) {
+    const typeIsValidForEntity = getTypesForEntity(formData.entity).some(t => t.name === formData.type);
+    if (!formData.type || !typeIsValidForEntity) {
         setAvailableSubTypes([]);
-        setSelectedSubType('');
+        // Don't necessarily reset subtype if type is just temporarily invalid during entity switch
+        // setFormData(prev => ({ ...prev, subType: '' })); 
         return;
     }
-    const subTypes = getSubTypesForType(selectedEntity, selectedType).map(st => st.name);
+    const subTypes = getSubTypesForType(formData.entity, formData.type).map(st => st.name);
     setAvailableSubTypes(subTypes);
-    // If not editing or subType doesn't match initial, set to first available sub-type
-    if (!isEditing || !subTypes.includes(selectedSubType)) {
-       setSelectedSubType(subTypes[0] || ''); 
+    // If editing and current subType is valid for new type, keep it, else reset
+    if (!isEditing || !subTypes.includes(formData.subType || '')) {
+       setFormData(prev => ({ ...prev, subType: subTypes[0] || '' })); 
     }
-  }, [selectedEntity, selectedType, isEditing]); // Rerun if isEditing changes
+  }, [formData.entity, formData.type, isEditing]); // Needs entity, type, isEditing
 
-  // Effect to automatically set the label based on Type and SubType when adding new node
+  // Effect to automatically set the label based on Type and SubType when adding a new node
   useEffect(() => {
     if (!isEditing) { // Only run when adding a new node
-      let defaultLabel = selectedType;
-      if (selectedSubType) {
-        defaultLabel += ` - ${selectedSubType}`;
+      let defaultLabel = formData.type;
+      if (formData.subType) {
+        defaultLabel += ` - ${formData.subType}`; // Combine Type and SubType
       }
-      // Only update if the generated label is not empty (i.e., type is selected)
+      // Update the label state if the generated label is not empty
       if (defaultLabel) {
-         setOtherFormData((prev) => ({ ...prev, label: defaultLabel }));
+         setFormData((prev) => ({ ...prev, label: defaultLabel }));
       }
     }
-    // When adding, always update label if type/subtype changes
-  }, [selectedType, selectedSubType, isEditing]);
+    // This effect now runs whenever type, subType, or isEditing changes
+  }, [formData.type, formData.subType, isEditing]);
 
-  // Handle changes for standard input/textarea fields
-  const handleOtherDataChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  // --- Handlers ---
+  // Generic handler for input/textarea changes
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setOtherFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  // Handle changes for dropdowns
-  const handleSelectChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    if (name === 'entity') {
-      setSelectedEntity(value);
-      // Type and SubType will be reset by useEffect hooks
-    } else if (name === 'type') {
-      setSelectedType(value);
-       // SubType will be reset by useEffect hook
-    } else if (name === 'subType') {
-      setSelectedSubType(value);
-    }
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Handle form submission
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Ensure all fields sent to onSubmit are strings as expected by NodeFormData
-    const finalData: NodeFormData = {
-      label: otherFormData.label,
-      entity: selectedEntity,
-      type: selectedType,
-      domain: otherFormData.domain, // Already string
-      owner: otherFormData.owner, // Already string
-      description: otherFormData.description, // Already string
-      transformations: otherFormData.transformations, // Already string
-      filters: otherFormData.filters, // Already string
-      // Only include subType if it was available and selected
-      ...(availableSubTypes.length > 0 && { subType: selectedSubType }), 
+    // Submit the current formData (which matches NodeData structure)
+    // Ensure optional fields are handled correctly (undefined if empty string? based on NodeData definition)
+    const submitData: NodeData = {
+      ...formData,
+      // Convert empty optional strings back to undefined if needed by NodeData definition
+      subType: formData.subType || undefined,
+      domain: formData.domain || undefined,
+      owner: formData.owner || undefined,
+      description: formData.description || undefined,
+      transformations: formData.transformations || undefined,
+      filters: formData.filters || undefined,
     };
-    onSubmit(finalData);
+    onSubmit(submitData); 
   };
 
-  const formTitle = isEditing ? 'Edit Node' : 'Add New Node';
-  const submitButtonText = isEditing ? 'Save Changes' : 'Add Node';
+  // Get the icon URL for the currently selected type
+  const currentTypeIcon = formData.entity && formData.type ? getIconForType(formData.entity, formData.type) : null;
 
-  // --- JSX Structure ---
+  // --- Render Logic ---
   return (
-    <div style={modalOverlayStyle} onClick={onCancel}>
-      <div style={modalStyle} onClick={(e) => e.stopPropagation()}> 
-        <div style={modalHeaderStyle}>
-           <h3 style={modalTitleStyle}>{formTitle}</h3> {/* Dynamic Title */}
+    // Modal Overlay - Tailwind styled
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40">
+      {/* Modal Container - Tailwind styled */}
+      <div className="z-50 flex max-h-[85vh] w-[450px] max-w-[90vw] flex-col overflow-hidden rounded-lg border border-gray-300 bg-white font-inter shadow-lg">
+        {/* Header */}
+        <div className="border-b border-gray-200 px-6 py-4">
+          <h2 className="m-0 text-lg font-semibold text-gray-800">
+            {isEditing ? 'Edit Node' : 'Add New Node'}
+          </h2>
         </div>
-        
-        <div style={modalContentStyle}> 
-          <form onSubmit={handleSubmit} id="node-form">
-            {/* Entity Dropdown */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="entity">Entity:</label>
-              <select style={selectDropdownStyle} className="node-form-select" id="entity" name="entity" value={selectedEntity} onChange={handleSelectChange}>
-                {entityNames.map((entity) => <option key={entity} value={entity}>{entity}</option>)}
+
+        {/* Scrollable Content Area */}
+        <form onSubmit={handleSubmit} className="flex-grow overflow-y-auto px-6 py-5">
+          {/* Entity */}
+          <div className="mb-4">
+            <label htmlFor="entity" className="mb-1.5 block text-sm font-medium text-gray-700">Entity *</label>
+            <select id="entity" name="entity" value={formData.entity} onChange={handleChange} required className="select-arrow w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+              {entityNames.map(name => <option key={name} value={name}>{name}</option>)}
+            </select>
+          </div>
+
+          {/* Type with Icon */}
+          <div className="mb-4">
+            <label htmlFor="type" className="mb-1.5 block text-sm font-medium text-gray-700">Type *</label>
+            <div className="flex items-center gap-2"> {/* Flex container for select + icon */} 
+              <select 
+                id="type" 
+                name="type" 
+                value={formData.type} 
+                onChange={handleChange} 
+                required 
+                disabled={!formData.entity || availableTypes.length === 0} 
+                className="select-arrow flex-grow rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
+              >
+                {availableTypes.map(name => <option key={name} value={name}>{name}</option>)}
               </select>
+              {/* Display icon if available */}
+              {currentTypeIcon && (
+                <img src={currentTypeIcon} alt={`${formData.type} icon`} className="h-6 w-6 flex-shrink-0" />
+              )}
             </div>
+          </div>
 
-            {/* Type Dropdown (Dynamic based on Entity) */}
-            {availableTypes.length > 0 && (
-                <div style={formGroupStyle}>
-                  <label style={labelStyle} htmlFor="type">Type:</label>
-                  <select style={selectDropdownStyle} className="node-form-select" id="type" name="type" value={selectedType} onChange={handleSelectChange}>
-                    {availableTypes.map((type) => <option key={type} value={type}>{type}</option>)}
-                  </select>
-                </div>
-            )}
+          {/* Sub Type */}
+          {availableSubTypes.length > 0 && (
+             <div className="mb-4">
+                <label htmlFor="subType" className="mb-1.5 block text-sm font-medium text-gray-700">Sub Type</label>
+                <select id="subType" name="subType" value={formData.subType || ''} onChange={handleChange} disabled={!formData.type} className="select-arrow w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100">
+                   <option value="">-- Select Sub Type --</option>
+                   {availableSubTypes.map(name => <option key={name} value={name}>{name}</option>)}
+                 </select>
+             </div>
+          )}
 
-            {/* Sub Type Dropdown (Dynamic based on Type) */}
-            {availableSubTypes.length > 0 && (
-              <div style={formGroupStyle}>
-                <label style={labelStyle} htmlFor="subType">Sub Type:</label>
-                <select 
-                  style={selectDropdownStyle} 
-                  className="node-form-select" 
-                  id="subType" 
-                  name="subType" 
-                  value={selectedSubType} 
-                  onChange={handleSelectChange}
-                >
-                  {availableSubTypes.map((st) => <option key={st} value={st}>{st}</option>)}
-                </select>
-              </div>
-            )}
+          {/* Label (Moved Here) */}
+          <div className="mb-4">
+            <label htmlFor="label" className="mb-1.5 block text-sm font-medium text-gray-700">Name (Label) *</label>
+            <input type="text" id="label" name="label" value={formData.label} onChange={handleChange} required className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          
+          {/* Optional Fields */}
+          <div className="mb-4">
+            <label htmlFor="domain" className="mb-1.5 block text-sm font-medium text-gray-700">Domain</label>
+            <input type="text" id="domain" name="domain" value={formData.domain} onChange={handleChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="owner" className="mb-1.5 block text-sm font-medium text-gray-700">Owner</label>
+            <input type="text" id="owner" name="owner" value={formData.owner} onChange={handleChange} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+          </div>
+          <div className="mb-4">
+            <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-gray-700">Description</label>
+            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={3} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="transformations" className="mb-1.5 block text-sm font-medium text-gray-700">Transformations</label>
+            <textarea id="transformations" name="transformations" value={formData.transformations} onChange={handleChange} rows={3} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+          </div>
+          <div className="mb-4">
+            <label htmlFor="filters" className="mb-1.5 block text-sm font-medium text-gray-700">Filters</label>
+            <textarea id="filters" name="filters" value={formData.filters} onChange={handleChange} rows={3} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
+          </div>
+        </form>
 
-            {/* Name (Label) - MOVED HERE */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="label">Name (Label):</label>
-              <input style={inputBaseStyle} className="node-form-input" type="text" id="label" name="label" value={otherFormData.label} onChange={handleOtherDataChange} required />
-            </div>
-
-            {/* Domain */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="domain">Domain:</label>
-              <input style={inputBaseStyle} className="node-form-input" type="text" id="domain" name="domain" value={otherFormData.domain} onChange={handleOtherDataChange} />
-            </div>
-            
-            {/* Owner */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="owner">Owner:</label>
-              <input style={inputBaseStyle} className="node-form-input" type="text" id="owner" name="owner" value={otherFormData.owner} onChange={handleOtherDataChange} />
-            </div>
-            
-            {/* Description */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="description">Description:</label>
-              <textarea style={{...inputBaseStyle, minHeight: '80px', resize: 'vertical'}} className="node-form-textarea" id="description" name="description" rows={3} value={otherFormData.description} onChange={handleOtherDataChange} />
-            </div>
-            
-            {/* Transformations */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="transformations">Transformations:</label>
-              <textarea style={{...inputBaseStyle, minHeight: '60px', resize: 'vertical'}} className="node-form-textarea" id="transformations" name="transformations" rows={2} value={otherFormData.transformations} onChange={handleOtherDataChange} />
-            </div>
-            
-            {/* Filters */}
-            <div style={{...formGroupStyle, marginBottom: 0}}> 
-              <label style={labelStyle} htmlFor="filters">Filters:</label>
-              <textarea style={{...inputBaseStyle, minHeight: '60px', resize: 'vertical'}} className="node-form-textarea" id="filters" name="filters" rows={2} value={otherFormData.filters} onChange={handleOtherDataChange} />
-            </div>
-          </form>
-        </div>
-
-        <div style={modalFooterStyle}> 
-           <button 
-                type="button" 
-                style={{...buttonBaseStyle, backgroundColor: '#fff', color: '#333'}} 
-                className="node-form-button-secondary" 
-                onClick={onCancel}
-            >
-                Cancel
-            </button>
-            <button 
-                type="submit" 
-                style={{...buttonBaseStyle, background: '#0950c5', color: 'white', borderColor: '#0950c5'}}
-                className="node-form-button-primary"
-                form="node-form" 
-            >
-                {submitButtonText} {/* Dynamic Button Text */}
-            </button>
+        {/* Footer with Buttons - Tailwind styled */}
+        <div className="flex flex-shrink-0 justify-end gap-2 border-t border-gray-200 px-6 py-4">
+          <button type="button" onClick={onCancel} className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1">
+            Cancel
+          </button>
+          <button type="submit" onClick={handleSubmit} className="rounded border border-transparent bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1">
+            {isEditing ? 'Save Changes' : 'Add Node'}
+          </button>
         </div>
       </div>
     </div>

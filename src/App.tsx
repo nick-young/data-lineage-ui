@@ -14,36 +14,22 @@ import LandingPage from './LandingPage'; // Import the LandingPage component
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
 
-// Node data type - Reflect new hierarchy
+// Node data type - Needs to be exported
 export interface NodeData {
-  label: string;      // User-defined name
-  entity: string;     // Broad category (e.g., Database)
-  type: string;       // Specific tech (e.g., MySQL)
-  subType?: string;    // Specific object type (e.g., Table)
+  label: string;
+  entity: string;
+  type: string;
+  subType?: string;
   domain?: string;
   owner?: string;
   description?: string;
   transformations?: string;
   filters?: string;
-  // context?: string; // Context might be derived from entity/type now
 }
 
-// Edge data type
+// Edge data type - Export if used elsewhere, otherwise keep local
 export interface EdgeData {
   details?: string;
-}
-
-// Type for form data submission - Reflect new hierarchy
-interface NodeFormData {
-  label: string;
-  entity: string; // Added
-  type: string;   // Added
-  subType?: string; // Added
-  domain: string;
-  owner: string;
-  description: string;
-  transformations: string;
-  filters: string;
 }
 
 // --- Load initial state from Local Storage or use defaults ---
@@ -140,17 +126,15 @@ let idCounter = initialNodesData.reduce((maxId, node) => {
 const getNextNodeId = () => `node_${idCounter++}`;
 
 // --- Constants and Setup ---
-const EDGE_COLOR = '#adb5bd'; // Light grey for edges
-const BACKGROUND_COLOR = '#f8f9fa'; // Very light grey background
-const DOT_PATTERN_COLOR = '#e0e0e0'; // Color for the dots
+// Removed constants like EDGE_COLOR, BACKGROUND_COLOR, DOT_PATTERN_COLOR as Tailwind will handle colors/bg
 
-// Default options for new edges - Use 'default' for Bezier
+// Default options for new edges - Use Tailwind color if available, otherwise keep grey
 const defaultEdgeOptions = {
-  style: { strokeWidth: 1.5, stroke: EDGE_COLOR },
-  type: 'default', // Use 'default' for Bezier curves
+  style: { strokeWidth: 1.5, stroke: '#adb5bd' }, // Kept grey for now, can use theme color later
+  type: 'default',
   markerEnd: {
     type: MarkerType.ArrowClosed,
-    color: EDGE_COLOR,
+    color: '#adb5bd', // Kept grey for now
     width: 15,
     height: 15,
   },
@@ -193,30 +177,6 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
   return layoutedNodes; 
 };
 // --------------------------
-
-// --- Toggle Button Style (Defined in App.tsx) ---
-const getToggleButtonStyleApp = (isVisible: boolean): React.CSSProperties => ({
-  position: 'absolute', // Position relative to the main flex container
-  top: '15px',        // Same vertical position as before
-  // Calculate left position based on sidebar state and width constants
-  left: `${isVisible ? SIDEBAR_WIDTH - 13 : COLLAPSED_WIDTH - 13}px`, // Center button on the edge
-  zIndex: 10,          // Ensure it's above React Flow controls/nodes potentially
-  background: '#e9ecef',
-  border: '1px solid #ced4da',
-  borderRadius: '50%',
-  width: '26px',
-  height: '26px',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  cursor: 'pointer',
-  fontSize: '14px',
-  lineHeight: '1',
-  color: '#495057',
-  padding: 0,
-  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-  transition: 'left 0.3s ease-in-out', // Animate the left position change
-});
 
 function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
@@ -284,38 +244,32 @@ function App() {
   }, []);
 
   // Combined handler for adding/updating nodes from the form
-  const handleFormSubmit = useCallback((formData: NodeFormData, isEditing: boolean, nodeId?: string) => {
+  const handleFormSubmit = useCallback((formData: NodeData, isEditing: boolean, nodeId?: string) => {
     if (isEditing && nodeId) {
       // Update existing node
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id === nodeId) {
-            return { 
-              ...node, 
-              data: { 
-                ...formData, // Spread all fields from NodeFormData
-              } 
-            };
+            // Update node data, keeping existing position
+            return { ...node, data: formData };
           }
           return node;
         })
       );
+      setEditingNode(null); // Clear editing state
     } else {
       // Add new node
       const newNodeId = getNextNodeId();
       const newNode: Node<NodeData> = {
         id: newNodeId,
-        type: 'custom',
-        position: { 
-          x: (reactFlowWrapper.current?.clientWidth || 800) / 2 - 100 + Math.random() * 50,
-          y: (reactFlowWrapper.current?.clientHeight || 600) / 2 - 40 + Math.random() * 50
-        }, 
-        data: { ...formData }, // Spread all fields
+        position: { x: Math.random() * 400, y: Math.random() * 400 }, // Initial random position
+        data: formData, 
+        type: 'custom', // Use the custom node type
       };
       setNodes((nds) => nds.concat(newNode));
     }
-    handleCancelForm(); // Close form after submission
-  }, [setNodes, handleCancelForm, reactFlowWrapper]);
+    setIsFormVisible(false); // Close form
+  }, [setNodes]);
 
   // Simplified handler for the Add Node button (just opens the form)
   const handleAddNode = useCallback(() => {
@@ -501,28 +455,20 @@ function App() {
     event.target.value = ''; // Reset file input
   }, [setNodes, setEdges, reactFlowInstance]);
 
-  // --- Sidebar Toggle Handler ---
+  // --- Sidebar Toggle Handler (Simplified) ---
   const toggleSidebar = useCallback(() => {
     setIsSidebarVisible(prev => !prev);
-    // Optional: Trigger layout recalculation slightly after animation starts/ends
-    // Using requestAnimationFrame ensures it happens after the next repaint
     requestAnimationFrame(() => {
-        window.dispatchEvent(new Event('resize'));
+        window.dispatchEvent(new Event('resize')); // Keep resize dispatch
     });
   }, []);
 
-  // --- Styles ---
-  const reactFlowWrapperStyle: React.CSSProperties = {
-    flexGrow: 1,
-    height: '100%',
-    position: 'relative', 
-    background: BACKGROUND_COLOR, 
-    backgroundImage: `radial-gradient(${DOT_PATTERN_COLOR} 1px, transparent 1px)`,
-    backgroundSize: '15px 15px',
-  };
+  // --- Dynamic Tailwind class for toggle button positioning ---
+  const toggleButtonLeftClass = isSidebarVisible ? `left-[${SIDEBAR_WIDTH - 13}px]` : `left-[${COLLAPSED_WIDTH - 13}px]`;
 
   return (
-    <div className="flex h-screen"> 
+    // Main container using Flexbox and Tailwind
+    <div className="flex h-screen font-inter"> 
       <Sidebar 
         isSidebarVisible={isSidebarVisible}
         selectedNodes={selectedNodes}
@@ -536,14 +482,16 @@ function App() {
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
       />
+      {/* Toggle button using Tailwind classes */}
       <button 
-        style={getToggleButtonStyleApp(isSidebarVisible)} 
+        className={`absolute top-[15px] z-10 flex h-[26px] w-[26px] cursor-pointer items-center justify-center rounded-full border border-gray-300 bg-gray-100 p-0 text-sm leading-none text-gray-700 shadow transition-all duration-300 ease-in-out hover:bg-gray-200 ${toggleButtonLeftClass}`}
         onClick={toggleSidebar}
         title={isSidebarVisible ? 'Collapse Sidebar' : 'Expand Sidebar'}
       >
         {isSidebarVisible ? '<' : '>'} 
       </button>
-      <div ref={reactFlowWrapper} style={reactFlowWrapperStyle}> 
+      {/* React Flow Wrapper using Tailwind */}
+      <div ref={reactFlowWrapper} className="relative h-full flex-grow bg-gray-50"> 
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
@@ -560,7 +508,7 @@ function App() {
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
           deleteKeyCode={null} 
           proOptions={{ hideAttribution: true }}
-          className="bg-gray-50"
+          className="bg-transparent" // Use parent div for background styling
         >
           <Controls />
           <Background />

@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { Node, Edge } from 'reactflow';
 import { NodeData, EdgeData } from './App';
-import { version } from '../package.json'; // Corrected import path for Docker context
+import { version } from '../package.json'; // Corrected import path
 
 // Define the expected data structure for the selected node
 /* 
@@ -25,213 +25,18 @@ interface SidebarProps {
 
 // --- Constants ---
 export const SIDEBAR_WIDTH = 280;
-export const COLLAPSED_WIDTH = 30; // Keep a small width to contain the button
+export const COLLAPSED_WIDTH = 0; // Sidebar truly collapses
 
-// --- Styles ---
-const sidebarStyle = (isVisible: boolean): React.CSSProperties => ({ 
-  width: isVisible ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
-  minWidth: isVisible ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`, // Prevent shrinking/growing beyond set state
-  height: '100%',
-  background: '#f8f9fa',
-  borderRight: isVisible ? '1px solid #D5D7DA' : 'none', // Hide border when collapsed
-  padding: isVisible ? '20px 0' : '0', // Remove padding when collapsed
-  boxSizing: 'border-box',
-  fontFamily: 'Inter, sans-serif',
-  display: 'flex',
-  flexDirection: 'column',
-  color: '#333',
-  fontSize: '14px',
-  overflow: 'hidden',
-  position: 'relative', // Needed for positioning the button
-  transition: 'width 0.3s ease-in-out, padding 0.3s ease-in-out, border 0.3s ease-in-out', // Animate width/padding/border
-});
+// Component for clickable section header
+const ClickableHeader: React.FC<{ title: string; isExpanded: boolean; onClick: () => void }> = 
+  ({ title, isExpanded, onClick }) => (
+  <div onClick={onClick} className="mb-4 flex cursor-pointer items-center justify-between border-b border-gray-200 pb-2 select-none">
+    <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+    <span className={`ml-2 text-xs transition-transform duration-200 ease-in-out ${isExpanded ? 'rotate-90' : 'rotate-0'}`}>▶</span>
+  </div>
+);
 
-// Style for the content area that scrolls
-const scrollableAreaStyle: React.CSSProperties = {
-  flexGrow: 1, 
-  overflowY: 'auto', 
-  overflowX: 'hidden', 
-  paddingTop: '20px',
-  paddingLeft: '10px',
-  paddingRight: '10px'
-};
-
-// Style for the clickable section headers
-const clickableHeaderStyle: React.CSSProperties = {
-  cursor: 'pointer',
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  userSelect: 'none',
-  paddingBottom: '10px',
-  borderBottom: '1px solid #E9EAEB',
-  marginBottom: '16px',
-  fontSize: 'inherit',
-  fontWeight: 600,
-  color: '#1B1D21',
-};
-
-const arrowStyle = (isExpanded: boolean): React.CSSProperties => ({
-  fontSize: '12px', 
-  marginLeft: '8px', 
-  transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
-  transition: 'transform 0.2s ease-in-out',
-});
-
-const sectionStyle: React.CSSProperties = {
-  marginBottom: '24px', // Increased spacing between sections
-};
-
-const titleStyle: React.CSSProperties = {
-    fontSize: '16px', 
-    fontWeight: 600, 
-    marginBottom: '16px', // Increased space below title
-    borderBottom: '1px solid #E9EAEB', 
-    paddingBottom: '10px', 
-    color: '#1B1D21', // Darker title color
-};
-
-// Style for the container holding a label and its value
-const detailRowStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between', // Pushes label and value apart slightly
-  alignItems: 'center',
-  marginBottom: '8px', // Space below each row (OM @size-xs)
-  lineHeight: 1.5,
-};
-
-const labelStyle: React.CSSProperties = {
-  fontWeight: 500,
-  color: '#757575', 
-  marginRight: '10px', // Space after label
-  flexShrink: 0, // Prevent label from shrinking
-};
-
-const valueStyle: React.CSSProperties = {
-  color: '#333', // Standard text color for values
-  textAlign: 'right', // Align value text to the right
-  wordBreak: 'break-word', // Allow long values to wrap
-};
-
-// Style for description paragraphs
-const descriptionParagraphStyle: React.CSSProperties = {
-  margin: '0 0 10px 0', // Bottom margin
-  fontSize: '13px',
-  lineHeight: '1.5',
-  color: '#495057', 
-  whiteSpace: 'pre-wrap', // <-- Re-add this property
-};
-
-const listStyle: React.CSSProperties = {
-  listStyle: 'none',
-  paddingLeft: 0, 
-  margin: '5px 0',
-};
-
-const listItemStyle: React.CSSProperties = {
-    marginBottom: '5px', // Consistent small spacing
-    color: '#333', // Ensure standard text color
-    wordBreak: 'break-word',
-};
-
-const textareaStyle: React.CSSProperties = {
-  width: '100%',
-  minHeight: '80px',
-  boxSizing: 'border-box',
-  border: '1px solid #D5D7DA',
-  borderRadius: '4px',
-  padding: '8px 12px',
-  fontFamily: 'inherit',
-  fontSize: 'inherit',
-  color: '#333',
-  backgroundColor: '#ffffff',
-};
-
-// Style for sub-section headers (e.g., Inputs, Outputs, Description)
-const subTitleStyle: React.CSSProperties = {
-  fontSize: '14px',
-  fontWeight: 600,
-  color: '#333',
-  marginBottom: '8px',
-  paddingBottom: '4px',
-  borderBottom: '1px solid #dee2e6', // Lighter border for sub-sections
-};
-
-// --- New Styles for Buttons in Sidebar ---
-const sidebarControlsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '10px',
-  marginBottom: '20px', // Space below buttons
-  paddingBottom: '15px', // Space above border
-  borderBottom: '1px solid #E9EAEB', // Separator line
-};
-
-const sidebarButtonStyle: React.CSSProperties = {
-  padding: '8px 12px',
-  border: '1px solid #D5D7DA',
-  borderRadius: '4px',
-  cursor: 'pointer',
-  fontWeight: 500,
-  fontSize: '13px',
-  fontFamily: 'inherit',
-  textAlign: 'center',
-  transition: 'background-color 0.2s, border-color 0.2s',
-};
-
-const primarySidebarButtonStyle: React.CSSProperties = {
-  ...sidebarButtonStyle,
-  background: '#0950c5',
-  color: 'white',
-  borderColor: '#0950c5',
-  fontWeight: 600,
-};
-
-const secondarySidebarButtonStyle: React.CSSProperties = {
-  ...sidebarButtonStyle,
-  background: '#fff',
-  color: '#333',
-};
-
-// --- New Style for Separator --- 
-const separatorStyle: React.CSSProperties = {
-  border: 'none',
-  borderTop: '1px solid #dee2e6', // Match border color
-  margin: '15px 0', // Add some vertical spacing
-};
-
-// --- New Styles for Buttons in Sidebar ---
-const topControlsStyle: React.CSSProperties = {
-  display: 'flex',
-  gap: '10px',
-  marginBottom: '20px', // Space below buttons
-  paddingBottom: '15px', // Space above border
-  borderBottom: '1px solid #E9EAEB', // Separator line
-};
-
-// --- Style for Footer Elements ---
-const footerContainerStyle: React.CSSProperties = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  padding: '10px 15px', // Add padding similar to other controls
-  borderTop: '1px solid #dee2e6', 
-  fontSize: '12px',
-  color: '#6c757d', // Muted color
-};
-
-const githubLinkStyle: React.CSSProperties = {
-  display: 'flex',
-  alignItems: 'center',
-  textDecoration: 'none',
-  color: 'inherit',
-};
-
-const githubIconStyle: React.CSSProperties = {
-  width: '16px',
-  height: '16px',
-  marginRight: '5px',
-};
-
+// Main Sidebar Component
 const Sidebar: React.FC<SidebarProps> = ({ 
   selectedNodes,
   selectedEdge,
@@ -245,284 +50,229 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLayoutNodesClick,
   isSidebarVisible,
 }) => {
-  
-  // REMOVED resize state/handlers
-  // const sidebarRef = useRef<HTMLDivElement>(null);
-  // const [sidebarWidth, setSidebarWidth] = useState(INITIAL_WIDTH);
-  // const [isResizing, setIsResizing] = useState(false);
-
-  // --- State for collapsible sections ---
+  // State for expanding/collapsing sections
   const [expandedSections, setExpandedSections] = useState({
+    controls: true,
     details: true,
+    description: true,
+    transformations: true,
+    filters: true,
     inputs: true,
     outputs: true,
-    description: false,
-    transformations: false,
-    filters: false,
-    edgeDetails: true,
-    relationshipDetails: true,
+    connections: true,
   });
 
-  // --- Toggle function ---
+  // Toggle section visibility
   const toggleSection = (sectionName: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [sectionName]: !prev[sectionName] }));
   };
 
-  // --- Determine single selected node for details/edit --- 
-  const singleSelectedNode = useMemo(() => {
-    return selectedNodes.length === 1 ? selectedNodes[0] : null;
-  }, [selectedNodes]);
-
+  // Memoized calculation of input/output nodes
   const { inputs, outputs } = useMemo(() => {
-    if (!singleSelectedNode) return { inputs: [], outputs: [] };
+    if (!selectedNodes || selectedNodes.length !== 1) {
+      return { inputs: [], outputs: [] };
+    }
+    const selectedId = selectedNodes[0].id;
+    const inputs = edges.filter(edge => edge.target === selectedId).map(edge => nodes.find(node => node.id === edge.source)).filter(Boolean) as Node<NodeData>[];
+    const outputs = edges.filter(edge => edge.source === selectedId).map(edge => nodes.find(node => node.id === edge.target)).filter(Boolean) as Node<NodeData>[];
+    return { inputs, outputs };
+  }, [selectedNodes, nodes, edges]);
 
-    const inputEdges = edges.filter((edge) => edge.target === singleSelectedNode.id);
-    const outputEdges = edges.filter((edge) => edge.source === singleSelectedNode.id);
-
-    const inputNodeLabels = inputEdges.map((edge) => {
-      const sourceNode = nodes.find((node) => node.id === edge.source);
-      return sourceNode?.data?.label || edge.source;
-    });
-
-    const outputNodeLabels = outputEdges.map((edge) => {
-      const targetNode = nodes.find((node) => node.id === edge.target);
-      return targetNode?.data?.label || edge.target;
-    });
-
-    return { inputs: inputNodeLabels, outputs: outputNodeLabels };
-  }, [singleSelectedNode, nodes, edges]);
-
-  const onEdgeDetailsChange = useCallback(
-    (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (!selectedEdge) return;
-
-      const selectedEdgeId = selectedEdge.id;
-      const newDetails = event.target.value;
-
-      setEdges((currentEdges) =>
-        currentEdges.map((edge) => {
-          if (edge.id === selectedEdgeId) {
-            const currentData = edge.data || {};
-            return { ...edge, data: { ...currentData, details: newDetails } };
-          }
-          return edge;
-        })
-      );
-    },
-    [selectedEdge, setEdges]
-  );
-
-  let content;
-  if (singleSelectedNode && !selectedEdge) {
-    const { label = 'N/A', entity = 'N/A', type = 'N/A', subType, domain = '-', owner = '-', description = '-', transformations = '-', filters = '-'} = singleSelectedNode.data || {};
-    content = (
-      <>
-        <div style={{...clickableHeaderStyle, fontSize: '16px', color: '#1B1D21'}} onClick={() => toggleSection('details')}>
-          Node Details<span style={arrowStyle(expandedSections.details)}>▶</span>
-        </div>
-        {expandedSections.details && (
-          <div style={sectionStyle}>
-            <div style={detailRowStyle}>
-              <span style={labelStyle}>ID:</span> 
-              <span style={valueStyle}>{singleSelectedNode.id}</span>
-            </div>
-            <div style={detailRowStyle}>
-              <span style={labelStyle}>Label:</span> 
-              <span style={valueStyle}>{label}</span>
-            </div>
-            <div style={detailRowStyle}>
-              <span style={labelStyle}>Entity:</span> 
-              <span style={valueStyle}>{entity}</span>
-            </div>
-            <div style={detailRowStyle}>
-              <span style={labelStyle}>Type:</span> 
-              <span style={valueStyle}>{type}</span>
-            </div>
-            
-            {subType && (
-              <div style={detailRowStyle}>
-                <span style={labelStyle}>Sub Type:</span>
-                <span style={valueStyle}>{subType}</span>
-              </div>
-            )}
-            
-            <div style={detailRowStyle}>
-              <span style={labelStyle}>Domain:</span> 
-              <span style={valueStyle}>{domain}</span>
-            </div>
-             <div style={detailRowStyle}>
-              <span style={labelStyle}>Owner:</span> 
-              <span style={valueStyle}>{owner}</span>
-            </div>
-          </div>
-        )}
-
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('inputs')}>
-          <span>Inputs ({inputs.length})</span><span style={arrowStyle(expandedSections.inputs)}>▶</span>
-        </div>
-        {expandedSections.inputs && (
-            inputs.length > 0 
-              ? (<ul style={listStyle}>{inputs.map((inputLabel, index) => <li style={listItemStyle} key={index}>{inputLabel}</li>)}</ul>) 
-              : (<p style={{...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
-        )}
-        
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('outputs')}>
-          <span>Outputs ({outputs.length})</span><span style={arrowStyle(expandedSections.outputs)}>▶</span>
-        </div>
-        {expandedSections.outputs && (
-            outputs.length > 0 
-              ? (<ul style={listStyle}>{outputs.map((outputLabel, index) => <li style={listItemStyle} key={index}>{outputLabel}</li>)}</ul>)
-              : (<p style={{...descriptionParagraphStyle, fontStyle: 'italic', color: '#757575' }}>None</p>)
-        )}
-
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('description')}>
-          Description<span style={arrowStyle(expandedSections.description)}>▶</span>
-        </div>
-        {expandedSections.description && (<p style={descriptionParagraphStyle}>{description}</p>)}
-
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('transformations')}>
-          Transformations<span style={arrowStyle(expandedSections.transformations)}>▶</span>
-        </div>
-        {expandedSections.transformations && (<p style={descriptionParagraphStyle}>{transformations}</p>)}
-
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('filters')}>
-          Filters<span style={arrowStyle(expandedSections.filters)}>▶</span>
-        </div>
-        {expandedSections.filters && (<p style={descriptionParagraphStyle}>{filters}</p>)}
-      </>
+  // Callback to update edge details
+  const handleEdgeDetailsChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    if (!selectedEdge) return;
+    const newDetails = event.target.value;
+    setEdges((eds) =>
+      eds.map((edge) => {
+        if (edge.id === selectedEdge.id) {
+          return { ...edge, data: { ...edge.data, details: newDetails } };
+        }
+        return edge;
+      })
     );
-  } else if (selectedEdge) {
-    const sourceNode = nodes.find(node => node.id === selectedEdge.source);
-    const targetNode = nodes.find(node => node.id === selectedEdge.target);
+  }, [selectedEdge, setEdges]);
 
-    content = (
-      <>
-        <div style={{...clickableHeaderStyle, fontSize: '16px', color: '#1B1D21'}} onClick={() => toggleSection('relationshipDetails')}>
-          Relationship Details<span style={arrowStyle(expandedSections.relationshipDetails)}>▶</span>
-        </div>
-        {expandedSections.relationshipDetails && (
-          <div style={sectionStyle}>
-            <div style={detailRowStyle}>
-                <span style={labelStyle}>ID:</span> 
-                <span style={valueStyle}>{selectedEdge.id}</span>
-            </div>
-             <div style={detailRowStyle}>
-                <span style={labelStyle}>Source:</span> 
-                <span style={valueStyle}>{sourceNode?.data?.label || selectedEdge.source}</span>
-            </div>
-             <div style={detailRowStyle}>
-                <span style={labelStyle}>Target:</span> 
-                <span style={valueStyle}>{targetNode?.data?.label || selectedEdge.target}</span>
-            </div>
-          </div>
-        )}
-        <div style={{...clickableHeaderStyle, ...subTitleStyle}} onClick={() => toggleSection('edgeDetails')}>
-           Details<span style={arrowStyle(expandedSections.edgeDetails)}>▶</span>
-        </div>
-        {expandedSections.edgeDetails && (
-          <textarea style={textareaStyle} value={selectedEdge.data?.details || ''} onChange={onEdgeDetailsChange} placeholder="Enter relationship details..."/>
-        )}
-      </>
-    );
-  } else if (selectedNodes.length > 1) {
-    content = (
-      <>
-        <h3 style={titleStyle}>Multiple Nodes Selected</h3>
-        <p style={descriptionParagraphStyle}>{selectedNodes.length} nodes selected.</p>
-        <ul style={listStyle}>
-          {selectedNodes.map(node => (
-             <li style={listItemStyle} key={node.id}>{node.data.label || node.id}</li>
-          ))}
-        </ul>
-      </>
-    )
-  } else {
-    content = (
-      <p style={descriptionParagraphStyle}>Select a node or edge to see details</p>
-    );
-  }
+  // Calculate dynamic width class
+  const widthClass = isSidebarVisible ? `w-[${SIDEBAR_WIDTH}px]` : 'w-0'; // Use w-0 when collapsed
 
   return (
-    <div style={sidebarStyle(isSidebarVisible)}>
-      {/* --- Conditionally Render Content --- */}
+    <div className={`flex h-full flex-shrink-0 flex-col bg-white text-sm text-gray-700 shadow-md transition-width duration-300 ease-in-out ${widthClass} ${isSidebarVisible ? 'border-r border-gray-200' : ''}`}>
+      {/* Only render content if sidebar is visible */}
       {isSidebarVisible && (
         <>
-          {/* --- Top Controls (Add / Layout) --- */}
-          <div style={{ ...topControlsStyle, paddingLeft: '10px', paddingRight: '10px' }}> 
-            <button 
-              onClick={onAddNodeClick}
-              style={primarySidebarButtonStyle}
-              title="Add a new node to the canvas"
-            >
-              Add Node
-            </button>
-            {/* --- Moved Layout Button --- */}
-            {onLayoutNodesClick && (
-              <button 
-                onClick={onLayoutNodesClick}
-                style={secondarySidebarButtonStyle}
-                title="Automatically arrange nodes Left-to-Right"
-              >
-                Layout Nodes
-              </button>
+          {/* Top Controls Section */}
+          <div className="border-b border-gray-200 p-4">
+            <ClickableHeader 
+              title="Controls"
+              isExpanded={expandedSections.controls} 
+              onClick={() => toggleSection('controls')}
+            />
+            {expandedSections.controls && (
+              <div className="flex flex-wrap gap-2">
+                <button 
+                  onClick={onAddNodeClick} 
+                  className="rounded border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                >
+                  Add Node
+                </button>
+                <button 
+                  onClick={onLayoutNodesClick} 
+                  className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                >
+                  Layout Nodes
+                </button>
+              </div>
             )}
           </div>
 
-          {/* --- Separator --- */}
-          <hr style={separatorStyle} />
-          
-          {/* --- Scrollable Details Area --- */}
-          <div style={scrollableAreaStyle}>
-            {content}
+          {/* Scrollable Content Area */}
+          <div className="flex-grow overflow-y-auto p-4">
+            {(selectedNodes.length === 1 || selectedEdge) ? (
+              <>
+                {/* Selected Node Details */}
+                {selectedNodes.length === 1 && (
+                  <div className="mb-6">
+                    <ClickableHeader 
+                      title="Node Details"
+                      isExpanded={expandedSections.details} 
+                      onClick={() => toggleSection('details')}
+                    />
+                    {expandedSections.details && (
+                      <div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{selectedNodes[0].data.label}</span></div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Entity:</span> <span className="text-right break-words">{selectedNodes[0].data.entity}</span></div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Type:</span> <span className="text-right break-words">{selectedNodes[0].data.type}</span></div>
+                        {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
+                        {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
+                        {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
+                        {/* Display other fields if needed */}
+                      </div>
+                    )}
+                    
+                    {/* Node Description Section */}
+                    {selectedNodes[0].data.description && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Description" 
+                            isExpanded={expandedSections.description}
+                            onClick={() => toggleSection('description')} 
+                        />
+                        {expandedSections.description && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.description}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Node Transformations Section */}
+                    {selectedNodes[0].data.transformations && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Transformations" 
+                            isExpanded={expandedSections.transformations}
+                            onClick={() => toggleSection('transformations')} 
+                        />
+                        {expandedSections.transformations && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.transformations}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Node Filters Section */}
+                    {selectedNodes[0].data.filters && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Filters" 
+                            isExpanded={expandedSections.filters}
+                            onClick={() => toggleSection('filters')} 
+                        />
+                        {expandedSections.filters && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.filters}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Input/Output Sections */}
+                    <hr className="my-3 border-gray-200" />
+                    <ClickableHeader title="Inputs" isExpanded={expandedSections.inputs} onClick={() => toggleSection('inputs')} />
+                    {expandedSections.inputs && (
+                      <ul className="ml-0 list-none p-0 text-xs">
+                        {inputs.length > 0 ? inputs.map(node => <li key={node.id} className="mb-1 break-words">{node.data.label} ({node.data.type})</li>) : <li className="italic text-gray-500">None</li>}
+                      </ul>
+                    )}
+                    <hr className="my-3 border-gray-200" />
+                    <ClickableHeader title="Outputs" isExpanded={expandedSections.outputs} onClick={() => toggleSection('outputs')} />
+                    {expandedSections.outputs && (
+                      <ul className="ml-0 list-none p-0 text-xs">
+                        {outputs.length > 0 ? outputs.map(node => <li key={node.id} className="mb-1 break-words">{node.data.label} ({node.data.type})</li>) : <li className="italic text-gray-500">None</li>}
+                      </ul>
+                    )}
+                  </div>
+                )}
+
+                {/* Selected Edge Details */}
+                {selectedEdge && (
+                  <div className="mb-6">
+                    <ClickableHeader 
+                      title="Connection Details"
+                      isExpanded={expandedSections.connections} 
+                      onClick={() => toggleSection('connections')}
+                    />
+                    {expandedSections.connections && (
+                        <div>
+                            <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Source:</span> <span className="text-right break-words">{nodes.find(n => n.id === selectedEdge.source)?.data.label || 'N/A'}</span></div>
+                            <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Target:</span> <span className="text-right break-words">{nodes.find(n => n.id === selectedEdge.target)?.data.label || 'N/A'}</span></div>
+                            <hr className="my-3 border-gray-200" />
+                            <label className="mb-1 block text-xs font-medium text-gray-500">Details:</label>
+                            <textarea 
+                              value={selectedEdge.data?.details || ''} 
+                              onChange={handleEdgeDetailsChange} 
+                              className="w-full rounded border border-gray-300 p-2 text-xs"
+                              rows={4}
+                            />
+                        </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="italic text-gray-500">{selectedNodes.length > 1 ? 'Multiple nodes selected' : 'Select a node or edge to view details'}</div>
+            )}
           </div>
 
-          {/* --- Separator --- */}
-          <hr style={separatorStyle} />
-
-          {/* --- Bottom Buttons Area --- */}
-          <div style={{
-            ...sidebarControlsStyle, 
-            borderBottom: 'none', // Remove bottom border here, it will be on the footer
-            marginBottom: 0, // Remove margin, footer will handle spacing
-            paddingBottom: 0, // Remove padding, footer will handle spacing
-          }}>
-            <button 
-              onClick={onSavePNG}
-              style={secondarySidebarButtonStyle}
-              title="Save the current view as a PNG image"
-            >
-              Save PNG
-            </button>
-            <button 
-              onClick={onSaveFlow}
-              style={secondarySidebarButtonStyle}
-              title="Save the current nodes and edges to a JSON file"
-            >
-              Save Flow
-            </button>
-            <button 
-              onClick={onLoadFlowTrigger}
-              style={secondarySidebarButtonStyle}
-              title="Load nodes and edges from a JSON file"
-            >
-              Load Flow
-            </button>
-          </div>
-
-          {/* --- Footer Area --- */}
-          <div style={footerContainerStyle}>
-            <span>v{version}</span>
-            <a 
-              href="/"
-              style={githubLinkStyle}
-              title="Go to Home"
-            >
-              <img 
-                src="./assets/logo.png"
-                alt="Home"
-                style={githubIconStyle}
-              />
-            </a>
+          {/* Footer */}
+          <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
+            <div className="mb-2 flex justify-center gap-2">
+               <button 
+                 onClick={onSavePNG} 
+                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                 title="Save as PNG"
+               >
+                 Download as PNG
+               </button>
+               <button 
+                 onClick={onSaveFlow} 
+                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                 title="Save Flow (JSON)"
+               >
+                 Save File
+               </button>
+               <button 
+                 onClick={onLoadFlowTrigger} 
+                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                 title="Load Flow (JSON)"
+                >
+                  Load File
+               </button>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Data Lineage v{version}</span>
+              <a href="/" className="flex items-center text-gray-500 hover:text-primary" title="Home">
+                <img src="./assets/logo.png" alt="Home" className="h-4 w-auto" />
+              </a>
+            </div>
           </div>
         </>
       )}
