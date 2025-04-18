@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.6](https://github.com/nick-young/data-lineage-ui/compare/v0.0.5...v0.0.6) (2025-04-18)
+
+
+### Features
+
+* add minimap ([93ad9f3](https://github.com/nick-young/data-lineage-ui/commit/93ad9f3f88c89e414b816df5fd1357811897082b))
+
 ### [0.0.5](https://github.com/nick-young/data-lineage-ui/compare/v0.0.4...v0.0.5) (2025-04-18)
 
 
