@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [0.1.0](https://github.com/nick-young/data-lineage-ui/compare/v0.0.8...v0.1.0) (2025-04-18)
+
+
+### ⚠ BREAKING CHANGES
+
+* reorder dev notes
+
+### Bug Fixes
+
+* docker build ([8d76556](https://github.com/nick-young/data-lineage-ui/commit/8d765566c0254a534e683cf469cde8d3f05d01fe))
+* layout nodes ([f8ff9bc](https://github.com/nick-young/data-lineage-ui/commit/f8ff9bc4be2b323d250db8d230ec80a575cf9cc8))
+* nginx ([a361e19](https://github.com/nick-young/data-lineage-ui/commit/a361e19b49507cb43cf46a180d301ec6eeede4d0))
+* nginx routing ([d4a740c](https://github.com/nick-young/data-lineage-ui/commit/d4a740c8ea36dd854cf554f951b7bd73932afa3f))
+* readme ([d83cb8a](https://github.com/nick-young/data-lineage-ui/commit/d83cb8a6daac2d5304f793121e116f2649c62d05))
+* remove unused pages ([6763aef](https://github.com/nick-young/data-lineage-ui/commit/6763aef74b4e37ce214968ddef2ba77b53e43476))
+
+
+* reorder dev notes ([a40be44](https://github.com/nick-young/data-lineage-ui/commit/a40be44ded2b50098bd06cf6f51a76e8aa802b6d))
+
 ### [0.0.8](https://github.com/nick-young/data-lineage-ui/compare/v0.0.7...v0.0.8) (2025-04-18)
 
 
