@@ -2,6 +2,9 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { Node, Edge } from 'reactflow';
 import { NodeData, EdgeData } from './App';
 import { version } from '../package.json'; // Corrected import path
+// Import palette helpers and preview component
+import { NodePalette, getPaletteByName, nodePalettes } from './config/nodePalettes';
+import PalettePreviewNode from './config/PalettePreviewNode';
 
 // Define the expected data structure for the selected node
 /* 
@@ -95,6 +98,46 @@ const Sidebar: React.FC<SidebarProps> = ({
   // Calculate dynamic width class
   const widthClass = isSidebarVisible ? `w-[${SIDEBAR_WIDTH}px]` : 'w-0'; // Use w-0 when collapsed
 
+  // Calculate palette for the selected node preview
+  const nodePreviewPalette: NodePalette | undefined = useMemo(() => {
+    if (selectedNodes.length !== 1) return undefined;
+    const nodeData = selectedNodes[0].data;
+
+    if (nodeData.palette) {
+      return getPaletteByName(nodeData.palette);
+    } else if (nodeData.bgColor || nodeData.borderColor) {
+      // Create a temporary custom palette for preview
+      // Basic contrast check for default text color (can be improved)
+      const isDarkBg = (bgColor: string): boolean => {
+        try {
+          const color = bgColor.startsWith('#') ? bgColor.substring(1) : bgColor;
+          const r = parseInt(color.substring(0, 2), 16);
+          const g = parseInt(color.substring(2, 4), 16);
+          const b = parseInt(color.substring(4, 6), 16);
+          // Formula for perceived brightness (YIQ)
+          const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+          return yiq < 128; // Threshold for darkness
+        } catch (e) {
+          return false; // Default to light if parsing fails
+        }
+      };
+      const defaultBg = nodePalettes[0].bgColor;
+      const defaultBorder = nodePalettes[0].borderColor;
+      const defaultText = nodePalettes[0].textColor;
+      const bgColor = nodeData.bgColor || defaultBg;
+      
+      return {
+        name: "Custom",
+        bgColor: bgColor,
+        borderColor: nodeData.borderColor || defaultBorder,
+        textColor: isDarkBg(bgColor) ? '#FFFFFF' : defaultText,
+      };
+    } else {
+      // Fallback to the default palette if no style info
+      return nodePalettes[0];
+    }
+  }, [selectedNodes]);
+
   return (
     <div className={`flex h-full flex-shrink-0 flex-col bg-white text-sm text-gray-700 shadow-md transition-width duration-300 ease-in-out ${widthClass} ${isSidebarVisible ? 'border-r border-gray-200' : ''}`}>
       {/* Only render content if sidebar is visible */}
@@ -145,6 +188,15 @@ const Sidebar: React.FC<SidebarProps> = ({
                         {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
                         {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
                         {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
+                        
+                        {/* Display node style preview */}
+                        {nodePreviewPalette && (
+                          <div className="mb-1 mt-2 flex items-center justify-between">
+                             <span className="font-medium text-gray-500">Style:</span>
+                             <PalettePreviewNode palette={nodePreviewPalette} />
+                           </div>
+                        )}
+                        
                         {/* Display other fields if needed */}
                       </div>
                     )}

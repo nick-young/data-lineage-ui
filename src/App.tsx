@@ -25,6 +25,9 @@ export interface NodeData {
   description?: string;
   transformations?: string;
   filters?: string;
+  bgColor?: string; // CSS color for background
+  borderColor?: string; // CSS color for border
+  palette?: string; // Optional: Name of a predefined palette
 }
 
 // Edge data type - Export if used elsewhere, otherwise keep local

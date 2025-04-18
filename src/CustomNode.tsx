@@ -2,6 +2,8 @@ import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { NodeData } from './App'; // Import NodeData type from App
 import { getIconForType /*, defaultIconUrl */ } from './config/nodeTypesConfig'; // Removed unused import
+// Import palettes and helper
+import { NodePalette, getPaletteByName, nodePalettes } from './config/nodePalettes';
 
 // Removed direct icon imports as they come from config now
 // import DatabaseIconUrl from './assets/om-icons/service-icon-sql.png';
@@ -44,17 +46,47 @@ const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, selected }) => {
   // Construct context text as "Entity: Type"
   const contextText = `${data.entity}: ${data.type}`;
 
-  // Dynamic Tailwind classes based on selection
-  const borderClass = selected ? 'border-blue-600 ring-1 ring-blue-600' : 'border-gray-300';
+  // Determine the active palette or use defaults
+  const activePalette: NodePalette = 
+    getPaletteByName(data.palette) || 
+    { 
+      name: 'Custom',
+      bgColor: data.bgColor || nodePalettes[0].bgColor, // Fallback to custom or first palette default
+      borderColor: data.borderColor || nodePalettes[0].borderColor, 
+      textColor: '#374151' // Default text color if custom
+    };
+
+  // Dynamic Tailwind classes for selection border/ring (overrides palette border color when selected)
+  const selectionClasses = selected ? 'border-blue-600 ring-1 ring-blue-600' : '';
   const shadowClass = selected ? 'shadow-lg' : 'shadow-sm';
 
+  // Inline style primarily for palette colors
+  const style: React.CSSProperties = {
+    backgroundColor: activePalette.bgColor,
+    borderColor: selected ? '#2563eb' : activePalette.borderColor, // Use selection color or palette border
+    color: activePalette.textColor, // Apply text color from palette
+    borderWidth: 1,
+    borderStyle: 'solid',
+    transition: 'all 0.2s', // Keep transition
+  };
+
+  // Determine text color classes (override inline style if needed, e.g., for specific elements)
+  // For now, we rely on the main `color` style. Could add specific classes if needed.
+  // const textColorClass = activePalette.textColor === '#ffffff' ? 'text-white' : 'text-gray-800';
+
   return (
-    <div className={`flex min-w-[180px] items-center gap-2 rounded-md border bg-white p-2 px-3 ${borderClass} ${shadowClass} transition-all duration-200 ease-in-out`}>
-      {/* Input handle - styled with Tailwind */}
+    <div
+      // Combine base classes, dynamic shadow, and selection classes
+      className={`flex min-w-[180px] items-center gap-2 rounded-md p-2 px-3 ${shadowClass} ${selectionClasses}`}
+      style={style}
+    >
+      {/* Input handle - style needs to adapt to background? */}
+      {/* For now, keeping handles simple white/gray */}
       <Handle 
         type="target" 
         position={Position.Left} 
-        className="h-2 w-2 rounded-full border border-gray-400 bg-white"
+        className="!h-2 !w-2 !min-w-0 !min-h-0 !rounded-full !border !border-gray-400 !bg-white"
+        style={{ borderColor: activePalette.textColor === '#f3f4f6' ? '#f3f4f6' : '#9ca3af'}} // Adjust handle border slightly on dark bg
       />
 
       {/* Icon */}
@@ -62,23 +94,34 @@ const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, selected }) => {
 
       {/* Text Container */}
       <div className="flex flex-col overflow-hidden text-left">
-        {/* Context Line (Top) - Show "Entity: Type" */}
-        <span className="mb-0.5 truncate text-xs text-gray-500">{contextText}</span>
+        {/* Context Line (Top) - Inherits color from main style */}
+        <span 
+          className="mb-0.5 truncate text-xs"
+          style={{ color: activePalette.textColor === '#f3f4f6' ? '#cbd5e1' : '#6b7280' }} // Lighter/darker gray based on main text
+        >
+          {contextText}
+        </span>
         
-        {/* Label Line (Bottom) - Include SubType if applicable */}
+        {/* Label Line (Bottom) - Inherits color from main style */}
         <div className="flex items-baseline"> 
-          <span className="truncate text-sm font-semibold text-gray-800">{data.label}</span>
+          <span className="truncate text-sm font-semibold">{data.label}</span>
           {data.subType && (
-            <span className="ml-1 flex-shrink-0 text-xs text-gray-500">({data.subType})</span>
+            <span 
+              className="ml-1 flex-shrink-0 text-xs"
+              style={{ color: activePalette.textColor === '#f3f4f6' ? '#cbd5e1' : '#6b7280' }} // Lighter/darker gray
+            >
+              ({data.subType})
+            </span>
           )}
         </div>
       </div>
 
-      {/* Output handle - styled with Tailwind */}
+      {/* Output handle - style needs to adapt? */}
       <Handle 
         type="source" 
         position={Position.Right} 
-        className="h-2 w-2 rounded-full border border-gray-400 bg-white"
+        className="!h-2 !w-2 !min-w-0 !min-h-0 !rounded-full !border !border-gray-400 !bg-white"
+        style={{ borderColor: activePalette.textColor === '#f3f4f6' ? '#f3f4f6' : '#9ca3af'}} // Adjust handle border slightly
       />
     </div>
   );

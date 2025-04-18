@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 // Import new config structure and helpers
 import { 
   // entityConfig, // Remove unused import
@@ -10,6 +10,9 @@ import {
   // SubTypeConfig // Remove unused import
 } from './config/nodeTypesConfig';
 import { NodeData } from './App'; // Use shared NodeData type
+// Import palettes
+import { nodePalettes, getPaletteByName, NodePalette } from './config/nodePalettes';
+import PalettePreviewNode from './config/PalettePreviewNode'; // Import the preview component
 
 // Form data structure (used internally for state)
 interface NodeFormState {
@@ -22,6 +25,9 @@ interface NodeFormState {
   description: string;
   transformations: string;
   filters: string;
+  palette?: string; // Holds the selected palette name
+  bgColor?: string;
+  borderColor?: string;
 }
 
 // NodeForm Props - Accept NodeData directly
@@ -32,19 +38,32 @@ interface NodeFormProps {
   onCancel: () => void;
 }
 
+const CUSTOM_PALETTE_VALUE = "__custom__"; // Special value for custom colors
+
 // --- Component Logic ---
 const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, onCancel }) => {
   const entityNames = getEntityNames();
   
   // Initialize state using NodeFormState structure
   const [formData, setFormData] = useState<NodeFormState>(() => {
+    const defaultPalette = nodePalettes[0]; // Use the first palette (Default) as the base
     const defaults: NodeFormState = {
       label: '', entity: entityNames[0] || '', type: '', subType: '',
-      domain: '', owner: '', description: '', transformations: '', filters: ''
+      domain: '', owner: '', description: '', transformations: '', filters: '',
+      palette: initialData?.palette || defaultPalette.name, // Initialize with palette or default
+      bgColor: initialData?.bgColor || defaultPalette.bgColor, // Use initial or default palette color
+      borderColor: initialData?.borderColor || defaultPalette.borderColor,
     };
-    // Merge initialData (which might have optional fields) into defaults
+    // If initialData has a palette, use that; otherwise, if it has custom colors, mark as custom
+    if (initialData && !initialData.palette && (initialData.bgColor || initialData.borderColor)) {
+      defaults.palette = CUSTOM_PALETTE_VALUE;
+    }
+    // Merge initialData into defaults, prioritizing initial values
     return { ...defaults, ...(initialData || {}) };
   });
+
+  // Determine if custom color pickers should be shown
+  const showCustomColors = formData.palette === CUSTOM_PALETTE_VALUE;
 
   const [availableTypes, setAvailableTypes] = useState<string[]>([]);
   const [availableSubTypes, setAvailableSubTypes] = useState<string[]>([]);
@@ -99,7 +118,56 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (name === 'palette') {
+      if (value === CUSTOM_PALETTE_VALUE) {
+        // Switching to Custom: Keep existing custom colors or reset to default white/gray
+        setFormData((prev) => ({
+          ...prev,
+          palette: CUSTOM_PALETTE_VALUE,
+          bgColor: prev.bgColor || '#ffffff',
+          borderColor: prev.borderColor || '#d1d5db'
+        }));
+      } else {
+        // Switching to a Predefined Palette: Find it and update colors
+        const selectedPalette = nodePalettes.find(p => p.name === value);
+        if (selectedPalette) {
+          setFormData((prev) => ({
+            ...prev,
+            palette: selectedPalette.name,
+            bgColor: selectedPalette.bgColor,
+            borderColor: selectedPalette.borderColor
+          }));
+        }
+      }
+    } else {
+      // Handle other input changes
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  // Specific handler for palette selection clicks
+  const handlePaletteSelect = (paletteName: string) => {
+    if (paletteName === CUSTOM_PALETTE_VALUE) {
+      // Selecting Custom: Keep existing custom colors or reset to default white/gray
+      setFormData((prev) => ({
+        ...prev,
+        palette: CUSTOM_PALETTE_VALUE,
+        bgColor: prev.bgColor || '#ffffff',
+        borderColor: prev.borderColor || '#d1d5db'
+      }));
+    } else {
+      // Selecting a Predefined Palette: Find it and update colors
+      const selectedPalette = nodePalettes.find(p => p.name === paletteName);
+      if (selectedPalette) {
+        setFormData((prev) => ({
+          ...prev,
+          palette: selectedPalette.name,
+          bgColor: selectedPalette.bgColor,
+          borderColor: selectedPalette.borderColor
+        }));
+      }
+    }
   };
 
   // Handle form submission
@@ -108,8 +176,9 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
     // Submit the current formData (which matches NodeData structure)
     // Ensure optional fields are handled correctly (undefined if empty string? based on NodeData definition)
     const submitData: NodeData = {
-      ...formData,
-      // Convert empty optional strings back to undefined if needed by NodeData definition
+      label: formData.label,
+      entity: formData.entity,
+      type: formData.type,
       subType: formData.subType || undefined,
       domain: formData.domain || undefined,
       owner: formData.owner || undefined,
@@ -117,6 +186,17 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
       transformations: formData.transformations || undefined,
       filters: formData.filters || undefined,
     };
+
+    // Only include palette OR custom colors, not both
+    if (formData.palette && formData.palette !== CUSTOM_PALETTE_VALUE) {
+      submitData.palette = formData.palette;
+      // Do NOT submit bgColor/borderColor if using a palette
+    } else {
+      submitData.bgColor = formData.bgColor || undefined;
+      submitData.borderColor = formData.borderColor || undefined;
+      // Do NOT submit palette name if using custom
+    }
+    
     onSubmit(submitData); 
   };
 
@@ -206,6 +286,63 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
             <label htmlFor="filters" className="mb-1.5 block text-sm font-medium text-gray-700">Filters</label>
             <textarea id="filters" name="filters" value={formData.filters} onChange={handleChange} rows={3} className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"></textarea>
           </div>
+
+          {/* Palette Visual Selector */}
+          <div className="mb-4">
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Color Palette</label>
+            <div className="flex flex-wrap gap-2"> {/* Grid container */} 
+              {nodePalettes.map(p => {
+                const isSelected = formData.palette === p.name;
+                return (
+                  <div 
+                    key={p.name} 
+                    onClick={() => handlePaletteSelect(p.name)}
+                    className={`cursor-pointer p-0.5 rounded-md ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                  >
+                    <PalettePreviewNode palette={p} />
+                  </div>
+                );
+              })}
+              {/* Custom Option */} 
+              <div 
+                onClick={() => handlePaletteSelect(CUSTOM_PALETTE_VALUE)}
+                className={`flex items-center justify-center h-[26px] w-[42px] cursor-pointer rounded-md border border-dashed border-gray-400 text-gray-500 hover:border-gray-600 hover:text-gray-700 text-xs p-0.5 ${formData.palette === CUSTOM_PALETTE_VALUE ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                title="Select Custom Colors"
+              >
+                Custom
+              </div>
+            </div>
+          </div>
+
+          {/* Conditional Custom Color Pickers */}
+          {showCustomColors && (
+            <div className="flex gap-4 mb-4 pl-2 border-l-2 border-gray-200">
+              {/* Background Color Picker */}
+              <div>
+                <label htmlFor="bgColor" className="mb-1.5 block text-xs font-medium text-gray-600">Background</label>
+                <input
+                  type="color"
+                  id="bgColor"
+                  name="bgColor"
+                  value={formData.bgColor || '#ffffff'}
+                  onChange={handleChange}
+                  className="w-12 h-8 p-0 border-0 rounded-md bg-transparent cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              {/* Border Color Picker */}
+              <div>
+                <label htmlFor="borderColor" className="mb-1.5 block text-xs font-medium text-gray-600">Border</label>
+                <input
+                  type="color"
+                  id="borderColor"
+                  name="borderColor"
+                  value={formData.borderColor || '#d1d5db'}
+                  onChange={handleChange}
+                  className="w-12 h-8 p-0 border-0 rounded-md bg-transparent cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          )}
         </form>
 
         {/* Footer with Buttons - Tailwind styled */}
