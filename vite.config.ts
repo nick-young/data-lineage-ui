@@ -8,8 +8,7 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: 'index.html',
-        dataLineage: 'data-lineage.html',
+        main: 'index.html'
       },
     },
   },
