@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.8](https://github.com/nick-young/data-lineage-ui/compare/v0.0.7...v0.0.8) (2025-04-18)
+
+
+### Features
+
+* add icons to node edit form ([e0312d6](https://github.com/nick-young/data-lineage-ui/commit/e0312d677b0019322de59833590ed7db665a69e9))
+
 ### [0.0.7](https://github.com/nick-young/data-lineage-ui/compare/v0.0.6...v0.0.7) (2025-04-18)
 
 ### [0.0.6](https://github.com/nick-young/data-lineage-ui/compare/v0.0.5...v0.0.6) (2025-04-18)
