@@ -141,16 +141,18 @@ const defaultEdgeOptions = {
 };
 
 // --- Dagre Layout Setup ---
-const dagreGraph = new dagre.graphlib.Graph();
-dagreGraph.setDefaultEdgeLabel(() => ({}));
-const DEFAULT_NODE_WIDTH = 200; // Fallback width if node.width isn't available
-const DEFAULT_NODE_HEIGHT = 80;  // Fallback height if node.height isn't available
+const DEFAULT_NODE_WIDTH = 200; 
+const DEFAULT_NODE_HEIGHT = 80; 
 
 const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => {
+  // Create a new graph instance for each layout calculation
+  const dagreGraph = new dagre.graphlib.Graph();
+  dagreGraph.setDefaultEdgeLabel(() => ({}));
+  
+  // Set graph options
   dagreGraph.setGraph({ rankdir: direction, nodesep: 70, ranksep: 100 });
 
   nodes.forEach((node) => {
-    // Use actual node dimensions if available, otherwise use defaults
     const nodeWidth = node.width || DEFAULT_NODE_WIDTH;
     const nodeHeight = node.height || DEFAULT_NODE_HEIGHT;
     dagreGraph.setNode(node.id, { width: nodeWidth, height: nodeHeight });
@@ -160,11 +162,22 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
     dagreGraph.setEdge(edge.source, edge.target);
   });
 
-  dagre.layout(dagreGraph);
+  // Perform layout inside a try...catch
+  try {
+    dagre.layout(dagreGraph);
+  } catch (layoutError) {
+    console.error("[Layout] Error during dagre.layout():", layoutError);
+    // Re-throw or return empty to prevent proceeding with bad data
+    throw layoutError; // Or return [];
+  }
 
+  // Map results (same as before)
   const layoutedNodes = nodes.map((node) => {
     const nodeWithPosition = dagreGraph.node(node.id);
-    // Use actual node dimensions (or defaults) for centering calculation
+    if (!nodeWithPosition) { // Add check in case layout failed for a node
+        console.warn(`[Layout] No position found for node ${node.id} after layout.`);
+        return { id: node.id, position: node.position }; // Return original position
+    }
     const nodeWidth = node.width || DEFAULT_NODE_WIDTH;
     const nodeHeight = node.height || DEFAULT_NODE_HEIGHT;
     const newPosition = {
@@ -311,32 +324,32 @@ function App() {
 
   // --- Layout Handler ---
   const handleLayoutNodes = useCallback((direction: string = 'LR') => {
-    const layoutedNodePositions = getLayoutedElements(nodes, edges, direction);
+    if (nodes.length === 0) {
+        return;
+    }
     
-    // Map layout results to NodePositionChange objects
-    const positionChanges: NodePositionChange[] = layoutedNodePositions.map(nodePos => ({
-        id: nodePos.id,
-        type: 'position',
-        position: nodePos.position,
-        dragging: false, // Ensure dragging state is reset
-    }));
-
-    // Apply the changes using setNodes
-    // This approach lets React Flow handle the update process internally
-    setNodes((currentNodes) => {
-        const nodeMap = new Map(currentNodes.map(n => [n.id, n]));
-        positionChanges.forEach(change => {
-            const node = nodeMap.get(change.id);
-            if (node && change.position) {
-                node.position = change.position;
-                node.positionAbsolute = change.position; // Update absolute position too
-                node.dragging = change.dragging;
-            }
+    try {
+      const layoutedNodePositions = getLayoutedElements(nodes, edges, direction);
+      
+      const positionMap = new Map(layoutedNodePositions.map(item => [item.id, item.position]));
+  
+      setNodes(currentNodes => {
+        let changed = false;
+        const newNodes = currentNodes.map(node => {
+          const newPosition = positionMap.get(node.id);
+          if (newPosition && (node.position.x !== newPosition.x || node.position.y !== newPosition.y)) {
+            changed = true;
+            return { ...node, position: newPosition };
+          }
+          return node;
         });
-        return Array.from(nodeMap.values());
-    });
+        return newNodes;
+      });
+    } catch (error) {
+        console.error("[Layout] Error during layout calculation:", error);
+    }
 
-  }, [nodes, edges, setNodes]); 
+  }, [nodes, edges, setNodes]);
 
   // --- Re-add onConnect Handler ---
   const onConnect = useCallback(

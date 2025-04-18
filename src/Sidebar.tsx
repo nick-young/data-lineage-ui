@@ -19,7 +19,7 @@ interface SidebarProps {
   onSavePNG: () => void;
   onSaveFlow: () => void;
   onLoadFlowTrigger: () => void;
-  onLayoutNodesClick?: () => void;
+  onLayoutNodesClick?: (direction: 'LR' | 'RL') => void;
   isSidebarVisible: boolean;
 }
 
@@ -116,7 +116,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   Add Node
                 </button>
                 <button 
-                  onClick={onLayoutNodesClick} 
+                  onClick={() => onLayoutNodesClick?.('LR')}
                   className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
                 >
                   Layout Nodes
