@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.0.4](https://github.com/nick-young/data-lineage-ui/compare/v0.0.3...v0.0.4) (2025-04-18)
+
+
+### Bug Fixes
+
+* image links ([34dcc84](https://github.com/nick-young/data-lineage-ui/commit/34dcc84e39a651215d6456ae0ca33cbbfd8c127b))
+
 ### [0.0.3](https://github.com/nick-young/data-lineage-ui/compare/v0.0.2...v0.0.3) (2025-04-18)
 
 
