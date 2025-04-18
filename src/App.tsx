@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange, Background, Controls, MiniMap } from 'reactflow'; // Re-add Background and Controls
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
 // If the import above doesn't resolve, comment it out and add a note:
 // NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
@@ -334,11 +334,9 @@ function App() {
       const positionMap = new Map(layoutedNodePositions.map(item => [item.id, item.position]));
   
       setNodes(currentNodes => {
-        let changed = false;
         const newNodes = currentNodes.map(node => {
           const newPosition = positionMap.get(node.id);
           if (newPosition && (node.position.x !== newPosition.x || node.position.y !== newPosition.y)) {
-            changed = true;
             return { ...node, position: newPosition };
           }
           return node;
