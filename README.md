@@ -4,7 +4,7 @@
 
 This project provides a user interface for visualizing data lineage using React and ReactFlow.
 
-![Screenshot of Data Lineage Visualiser](public/screen.png)
+![Screenshot of Data Lineage Visualiser](public/assets/screen.png)
 
 ## Features
 
