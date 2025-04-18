@@ -197,6 +197,21 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
     }
   }, [selectedEntity, selectedType, isEditing]); // Rerun if isEditing changes
 
+  // Effect to automatically set the label based on Type and SubType when adding new node
+  useEffect(() => {
+    if (!isEditing) { // Only run when adding a new node
+      let defaultLabel = selectedType;
+      if (selectedSubType) {
+        defaultLabel += ` - ${selectedSubType}`;
+      }
+      // Only update if the generated label is not empty (i.e., type is selected)
+      if (defaultLabel) {
+         setOtherFormData((prev) => ({ ...prev, label: defaultLabel }));
+      }
+    }
+    // When adding, always update label if type/subtype changes
+  }, [selectedType, selectedSubType, isEditing]);
+
   // Handle changes for standard input/textarea fields
   const handleOtherDataChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -251,12 +266,6 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
         
         <div style={modalContentStyle}> 
           <form onSubmit={handleSubmit} id="node-form">
-            {/* Label */}
-            <div style={formGroupStyle}>
-              <label style={labelStyle} htmlFor="label">Name (Label):</label>
-              <input style={inputBaseStyle} className="node-form-input" type="text" id="label" name="label" value={otherFormData.label} onChange={handleOtherDataChange} required />
-            </div>
-
             {/* Entity Dropdown */}
             <div style={formGroupStyle}>
               <label style={labelStyle} htmlFor="entity">Entity:</label>
@@ -291,6 +300,12 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
                 </select>
               </div>
             )}
+
+            {/* Name (Label) - MOVED HERE */}
+            <div style={formGroupStyle}>
+              <label style={labelStyle} htmlFor="label">Name (Label):</label>
+              <input style={inputBaseStyle} className="node-form-input" type="text" id="label" name="label" value={otherFormData.label} onChange={handleOtherDataChange} required />
+            </div>
 
             {/* Domain */}
             <div style={formGroupStyle}>
