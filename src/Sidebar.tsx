@@ -513,13 +513,15 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div style={footerContainerStyle}>
             <span>v{version}</span>
             <a 
-              href="https://github.com/nick-young/data-lineage-ui" 
-              target="_blank" 
-              rel="noopener noreferrer" 
+              href="/"
               style={githubLinkStyle}
-              title="View on GitHub"
+              title="Go to Home"
             >
-              <img src="/assets/github-mark.svg" alt="GitHub" style={githubIconStyle} />
+              <img 
+                src="/assets/logo.png"
+                alt="Home"
+                style={githubIconStyle}
+              />
             </a>
           </div>
         </>
