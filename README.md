@@ -50,25 +50,6 @@ This project provides a user interface for visualizing data lineage using React 
 4.  **Open the application:**
     Navigate to http://localhost:5173 (or the port specified in the terminal output) in your web browser.
 
-## Deployment to GitHub Pages
-
-To deploy the latest version of the application to the live GitHub Pages site:
-
-1.  **Navigate to the UI directory:**
-    ```bash
-    cd data-lineage-ui
-    ```
-
-2.  **Run the deployment script:**
-    ```bash
-    npm run deploy
-    ```
-    This script will:
-    *   Run `npm run build` to create a production build in the `dist` directory.
-    *   Use the `gh-pages` package to push the contents of the `dist` directory to the `gh-pages` branch of your repository.
-
-GitHub Pages is configured to serve from the `gh-pages` branch, so this command updates the live site.
-
 ## Running with Docker (Alternative)
 
 If you have Docker and Docker Compose (or the integrated `docker compose` command) installed, you can build and run the application in a container:
@@ -101,7 +82,7 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
 *   Node icons are configured in `src/config/nodeTypesConfig.ts` and sourced from `public/assets/om-icons/`.
 *   The `public` directory is served at the root by Vite.
 
-## Versioning
+### Versioning
 
 This project uses [`standard-version`](https://github.com/conventional-changelog/standard-version) for automated version bumping and CHANGELOG generation based on [Conventional Commits](https://www.conventionalcommits.org/).
 
@@ -126,6 +107,25 @@ This project uses [`standard-version`](https://github.com/conventional-changelog
     ```bash
     git push --follow-tags origin <your-branch-name>
     ```
+### Deployment to GitHub Pages
+
+To deploy the latest version of the application to the live GitHub Pages site:
+
+1.  **Navigate to the UI directory:**
+    ```bash
+    cd data-lineage-ui
+    ```
+
+2.  **Run the deployment script:**
+    ```bash
+    npm run deploy
+    ```
+    This script will:
+    *   Run `npm run build` to create a production build in the `dist` directory.
+    *   Use the `gh-pages` package to push the contents of the `dist` directory to the `gh-pages` branch of your repository.
+
+GitHub Pages is configured to serve from the `gh-pages` branch, so this command updates the live site.
+
 
 ## License
 
