@@ -518,7 +518,7 @@ const Sidebar: React.FC<SidebarProps> = ({
               title="Go to Home"
             >
               <img 
-                src="/assets/logo.png"
+                src="./assets/logo.png"
                 alt="Home"
                 style={githubIconStyle}
               />

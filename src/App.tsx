@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, /* Background, */ /* ReactFlowInstance, */ MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange /*, MiniMap, Controls */ } from 'reactflow'; // Removed more unused imports
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange, Background, Controls } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
 import dagre from 'dagre'; // Import dagre
 import * as htmlToImage from 'html-to-image'; // Added
@@ -7,6 +7,7 @@ import * as htmlToImage from 'html-to-image'; // Added
 import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import Sidebar and constants
 import NodeForm from './NodeForm'; // Import NodeForm
+import LandingPage from './LandingPage'; // Import the LandingPage component
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -280,54 +281,44 @@ function App() {
     setEditingNode(null);
   }, []);
 
-  const handleAddNode = useCallback((formData: NodeFormData) => {
-    const newNodeId = getNextNodeId();
-    const newNode: Node<NodeData> = {
-      id: newNodeId,
-      type: 'custom',
-      position: { x: Math.random() * 400, y: Math.random() * 400 }, 
-      data: { 
-        label: formData.label, 
-        entity: formData.entity, 
-        type: formData.type,     
-        subType: formData.subType,
-        domain: formData.domain,
-        owner: formData.owner,
-        description: formData.description,
-        transformations: formData.transformations,
-        filters: formData.filters,
-      },
-    };
-    setNodes((nds) => nds.concat(newNode));
-    handleCancelForm();
-  }, [setNodes, handleCancelForm]);
+  // Combined handler for adding/updating nodes from the form
+  const handleFormSubmit = useCallback((formData: NodeFormData, isEditing: boolean, nodeId?: string) => {
+    if (isEditing && nodeId) {
+      // Update existing node
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === nodeId) {
+            return { 
+              ...node, 
+              data: { 
+                ...formData, // Spread all fields from NodeFormData
+              } 
+            };
+          }
+          return node;
+        })
+      );
+    } else {
+      // Add new node
+      const newNodeId = getNextNodeId();
+      const newNode: Node<NodeData> = {
+        id: newNodeId,
+        type: 'custom',
+        position: { 
+          x: (reactFlowWrapper.current?.clientWidth || 800) / 2 - 100 + Math.random() * 50,
+          y: (reactFlowWrapper.current?.clientHeight || 600) / 2 - 40 + Math.random() * 50
+        }, 
+        data: { ...formData }, // Spread all fields
+      };
+      setNodes((nds) => nds.concat(newNode));
+    }
+    handleCancelForm(); // Close form after submission
+  }, [setNodes, handleCancelForm, reactFlowWrapper]);
 
-  const handleUpdateNode = useCallback((formData: NodeFormData) => {
-    if (!editingNode) return;
-
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === editingNode.id) {
-          return { 
-            ...node, 
-            data: { 
-              label: formData.label, 
-              entity: formData.entity, 
-              type: formData.type,     
-              subType: formData.subType,
-              domain: formData.domain,
-              owner: formData.owner,
-              description: formData.description,
-              transformations: formData.transformations,
-              filters: formData.filters,
-             } 
-          };
-        }
-        return node;
-      })
-    );
-    handleCancelForm();
-  }, [editingNode, setNodes, handleCancelForm]);
+  // Simplified handler for the Add Node button (just opens the form)
+  const handleAddNode = useCallback(() => {
+    openNodeForm(); // Open form without pre-filled data
+  }, [openNodeForm]);
 
   // --- Delete Handler ---
   const handleDeleteSelectedNodes = useCallback(() => {
@@ -344,51 +335,31 @@ function App() {
 
   // --- Copy Handler ---
   const handleCopy = useCallback(() => {
-    if (selectedNodes.length > 0) {
-        const clonedNodes = selectedNodes.map(node => ({...node, data: {...node.data}}));
-        setCopiedNodes(clonedNodes);
-        console.log('Nodes copied:', clonedNodes);
-    } else {
-        setCopiedNodes([]); 
+    const selected = nodes.filter((node) => node.selected);
+    if (selected.length > 0) {
+      setCopiedNodes(selected);
+      console.log('Copied nodes:', selected.map(n => n.id));
     }
-  }, [selectedNodes]);
+  }, [nodes]);
 
   // --- Paste Handler ---
   const handlePaste = useCallback(() => {
     if (copiedNodes.length === 0) return;
-    const pane = reactFlowWrapper.current?.querySelector('.react-flow__viewport');
-    let pastePosition = { x: 100, y: 100 }; 
-    if (pane) {
-      pastePosition = reactFlowInstance.screenToFlowPosition({
-        x: pane.clientWidth / 2,
-        y: pane.clientHeight / 2,
-      });
-    }
-    let minX = Infinity;
-    let minY = Infinity;
-    if (copiedNodes.length > 0) { // Check length > 0 for safety
-        copiedNodes.forEach(node => {
-            minX = Math.min(minX, node.position.x);
-            minY = Math.min(minY, node.position.y);
-        });
-    } else {
-        minX = 0; // Default if no nodes somehow
-        minY = 0;
-    }
-
-    const newNodes = copiedNodes.map((node, index) => {
-      const newNodeId = getNextNodeId(); 
-      const nodePosition = {
-            x: pastePosition.x + (node.position.x - minX) + index * 10, 
-            y: pastePosition.y + (node.position.y - minY) + index * 10, 
-        };
-      return { ...node, id: newNodeId, position: nodePosition, selected: false, data: { ...node.data } };
+    const newNodes = copiedNodes.map((node) => {
+      const newNodeId = getNextNodeId();
+      return {
+        ...node,
+        id: newNodeId,
+        selected: false, 
+        position: { 
+          x: node.position.x + 20,
+          y: node.position.y + 20,
+        },
+      };
     });
-
-    setNodes((nds) => [...nds, ...newNodes]);
-    console.log('Nodes pasted:', newNodes); // Log moved inside
-
-  }, [copiedNodes, setNodes, reactFlowInstance]);
+    setNodes((nds) => nds.concat(newNodes));
+    console.log('Pasted nodes:', newNodes.map(n => n.id));
+  }, [copiedNodes, setNodes]);
 
   // --- Double Click Handler ---
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
@@ -432,29 +403,32 @@ function App() {
   );
 
   // --- Keyboard Event Listener for Copy/Paste --- 
+  const handleKeyDown = (event: KeyboardEvent) => {
+    if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+      return; 
+    }
+    if (event.key === 'Delete' || event.key === 'Backspace') {
+      const selectedNodeIds = nodes.filter(n => n.selected).map(n => n.id);
+      const selectedEdgeIds = edges.filter(e => e.selected).map(e => e.id);
+      if (selectedNodeIds.length > 0 || selectedEdgeIds.length > 0) {
+        setNodes(nds => nds.filter(n => !n.selected));
+        setEdges(eds => eds.filter(e => !e.selected));
+        setSelectedEdge(null); 
+      }
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
+      handleCopy();
+    }
+    if ((event.metaKey || event.ctrlKey) && event.key === 'v') {
+      handlePaste();
+    }
+  };
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement;
-      const isInputFocused = target.tagName === 'INPUT' || 
-                             target.tagName === 'TEXTAREA' || 
-                             target.tagName === 'SELECT' || 
-                             target.isContentEditable || 
-                             target.closest('form');
-      if (isInputFocused) {
-          return;
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-        handleCopy();
-      }
-      if ((event.ctrlKey || event.metaKey) && event.key === 'v') {
-        handlePaste();
-      }
-    };
     document.addEventListener('keydown', handleKeyDown);
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleCopy, handlePaste, handleDeleteSelectedNodes, selectedNodes]);
+  }, [handleKeyDown]);
 
   // --- Save PNG Handler (Simplified) ---
   const handleSavePNG = useCallback(() => {
@@ -559,32 +533,28 @@ function App() {
   };
 
   return (
-    // Main flex container - needs position: relative for absolute positioning of button
-    <div style={{ display: 'flex', height: '100vh', width: '100vw', position: 'relative' }}> 
-      <Sidebar
+    <div className="flex h-screen"> 
+      <Sidebar 
+        isSidebarVisible={isSidebarVisible}
         selectedNodes={selectedNodes}
         selectedEdge={selectedEdge}
-        nodes={nodes} 
-        edges={edges} 
+        nodes={nodes}
+        edges={edges}
         setEdges={setEdges}
-        onAddNodeClick={() => openNodeForm()}
+        onAddNodeClick={handleAddNode}
         onSavePNG={handleSavePNG}
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
-        onLayoutNodesClick={() => handleLayoutNodes('LR')}
-        isSidebarVisible={isSidebarVisible} // Pass only for width styling
+        onLayoutNodesClick={handleLayoutNodes}
       />
-      
-      {/* --- Toggle Button (Placed outside Sidebar) --- */}
       <button 
         style={getToggleButtonStyleApp(isSidebarVisible)} 
-        onClick={toggleSidebar} 
-        title={isSidebarVisible ? "Hide Sidebar" : "Show Sidebar"}
+        onClick={toggleSidebar}
+        title={isSidebarVisible ? 'Collapse Sidebar' : 'Expand Sidebar'}
       >
-        {isSidebarVisible ? '<' : '>'}
+        {isSidebarVisible ? '<' : '>'} 
       </button>
-
-      <div style={reactFlowWrapperStyle}> 
+      <div ref={reactFlowWrapper} style={reactFlowWrapperStyle}> 
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
@@ -599,15 +569,19 @@ function App() {
           panOnDrag={[2]} // Enable panning only with Right mouse button
           selectionOnDrag={true} // Enable drag selection box
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
+          deleteKeyCode={null} 
           proOptions={{ hideAttribution: true }}
+          className="bg-gray-50"
         >
+          <Background color={DOT_PATTERN_COLOR} />
+          <Controls />
           {isFormVisible && (
             <NodeForm 
               key={editingNode ? `edit-${editingNode.id}` : 'add'} 
               initialData={editingNode?.data || null}
               isEditing={!!editingNode}
-              onSubmit={editingNode ? handleUpdateNode : handleAddNode} 
-              onCancel={handleCancelForm} 
+              onSubmit={(data) => handleFormSubmit(data, !!editingNode, editingNode?.id)}
+              onCancel={handleCancelForm}
             />
           )}
         </ReactFlow>
@@ -615,7 +589,7 @@ function App() {
       <input 
         type="file"
         ref={fileInputRef}
-        style={{ display: 'none' }} 
+        className="hidden"
         accept=".json"
         onChange={handleLoadFlow}
       />
@@ -625,20 +599,37 @@ function App() {
 
 // Wrap App with ReactFlowProvider 
 function AppWrapper() {
+  const [showLandingPage, setShowLandingPage] = useState(true);
+
+  const handleAppLaunch = useCallback(() => {
+    setShowLandingPage(false);
+  }, []);
+
+  if (showLandingPage) {
+    return (
+      <div className="landing-page-container">
+        <LandingPage onLaunchApp={handleAppLaunch} />
+      </div>
+    );
+  }
+  
   return (
-    <ReactFlowProvider>
-      <App />
-    </ReactFlowProvider>
-  )
+    <div className="app-container">
+      <ReactFlowProvider>
+        <App />
+      </ReactFlowProvider>
+    </div>
+  );
 }
 
 // --- Helper function to trigger file download ---
 function downloadFile(dataUrl: string, filename: string) {
   const link = document.createElement('a');
-  link.download = filename;
   link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link); 
   link.click();
-  link.remove();
+  document.body.removeChild(link);
 }
 
 export default AppWrapper;

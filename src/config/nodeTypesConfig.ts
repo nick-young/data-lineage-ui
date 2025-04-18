@@ -15,25 +15,15 @@ export interface EntityConfig {
   types: TypeConfig[];  // Array of specific technologies within this entity
 }
 
-// Base path for icons in the public directory
-// const iconBasePath = '/assets/om-icons/'; // Removed, paths will be relative now
-
-// Helper function to resolve icon URLs correctly with Vite's base path
+// Helper function to resolve icon URLs correctly
 function resolveIconUrl(relativePath: string): string {
-  // Use import.meta.url to resolve paths relative to the current module
-  // The base path from vite.config.js will be handled automatically by Vite for assets
-  try {
-    // This works for assets in /public or properly imported assets
-    return new URL(`/` + relativePath, window.location.origin + (import.meta.env.BASE_URL || '')).pathname;
-  } catch (e) {
-    console.error(`Failed to resolve icon URL: ${relativePath}`, e);
-    // Fallback to relative path, might work in dev, but likely break in prod
-    return relativePath; 
-  }
+  // Extract the filename and include the base path
+  const fileName = relativePath.split('/').pop() || '';
+  const basePath = import.meta.env.BASE_URL || '/';
+  return `${basePath}assets/om-icons/${fileName}`;
 }
 
 // Default icon if a specific type doesn't have one
-// Note: We resolve the default URL here as well.
 export const defaultIconUrl = resolveIconUrl('assets/om-icons/service-icon-generic.png');
 
 // --- Configuration Data ---
