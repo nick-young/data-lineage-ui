@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
 import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, NodePositionChange, Background, Controls } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
+// If the import above doesn't resolve, comment it out and add a note:
+// NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
 import dagre from 'dagre'; // Import dagre
 import * as htmlToImage from 'html-to-image'; // Added
 
@@ -319,19 +321,6 @@ function App() {
   const handleAddNode = useCallback(() => {
     openNodeForm(); // Open form without pre-filled data
   }, [openNodeForm]);
-
-  // --- Delete Handler ---
-  const handleDeleteSelectedNodes = useCallback(() => {
-    const selectedNodeIds = new Set(selectedNodes.map(n => n.id));
-    if (selectedNodeIds.size === 0) return; 
-    setNodes((nds) => nds.filter((node) => !selectedNodeIds.has(node.id)));
-    setEdges((eds) =>
-      eds.filter((edge) => !selectedNodeIds.has(edge.source) && !selectedNodeIds.has(edge.target))
-    );
-    setSelectedEdge(null);
-    setEditingNode(null);
-    setIsFormVisible(false);
-  }, [selectedNodes, setNodes, setEdges]);
 
   // --- Copy Handler ---
   const handleCopy = useCallback(() => {
