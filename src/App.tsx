@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap } from 'reactflow'; // Re-add Background and Controls
+import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap, XYPosition, NodeHandleBounds } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
 // If the import above doesn't resolve, comment it out and add a note:
 // NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
@@ -10,6 +10,10 @@ import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import Sidebar and constants
 import NodeForm from './NodeForm'; // Import NodeForm
 import LandingPage from './LandingPage'; // Import the LandingPage component
+import FloatingToolbar, { DrawingTool } from './FloatingToolbar';
+import TextAnnotationNode, { TextAnnotationData } from './TextAnnotationNode';
+import EdgeLabelNode from './EdgeLabelNode'; // Import the component itself
+import type { EdgeLabelData } from './types'; // Import the type from types.ts
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -118,15 +122,18 @@ const initialEdgesData: Edge<EdgeData>[] = (() => {
 // Original nodeTypes (No GroupNode)
 const nodeTypes = {
   custom: CustomNode,
+  textAnnotation: TextAnnotationNode,
+  edgeLabel: EdgeLabelNode, // Add the edgeLabel type
   // group: GroupNode, // <-- Remove GroupNode registration
 };
 
 // Adjust ID counter based on loaded nodes
 let idCounter = initialNodesData.reduce((maxId, node) => {
-  const numericId = parseInt(node.id.replace(/[^0-9]/g, ''), 10); // More robust parsing
+  const match = node.id.match(/_(\d+)$/);
+  const numericId = match ? parseInt(match[1], 10) : 0;
   return Math.max(maxId, isNaN(numericId) ? 0 : numericId);
-}, 0) + 1; // Start from max existing ID + 1
-const getNextNodeId = () => `node_${idCounter++}`;
+}, 0) + 1;
+const getNextId = (prefix: string = 'node') => `${prefix}_${idCounter++}`;
 
 // --- Constants and Setup ---
 // Removed constants like EDGE_COLOR, BACKGROUND_COLOR, DOT_PATTERN_COLOR as Tailwind will handle colors/bg
@@ -141,6 +148,10 @@ const defaultEdgeOptions = {
     width: 15,
     height: 15,
   },
+  // labelStyle: { fontSize: 10, fill: '#555' }, // REMOVED
+  // labelBgStyle: { fill: '#f8f9fa', fillOpacity: 0.8 }, // REMOVED
+  // labelBgPadding: [4, 6] as [number, number], // REMOVED
+  // labelBgBorderRadius: 3, // REMOVED
 };
 
 // --- Dagre Layout Setup ---
@@ -205,6 +216,9 @@ function App() {
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
   const [isSidebarVisible, setIsSidebarVisible] = useState(true); // State for sidebar visibility
+  const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
+  const [activeTool, setActiveTool] = useState<DrawingTool>('select');
+  const [selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
 
   // --- Derive selected nodes state ---
   const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
@@ -241,18 +255,34 @@ function App() {
 
   // --- Event Handlers & Callbacks ---
   const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
-    setSelectedEdge((currentEdge) => (currentEdge?.id === edge.id ? null : edge));
-    setNodes((nds) => nds.map(n => ({ ...n, selected: false })));
+    const isDeselecting = selectedEdge?.id === edge.id;
+    setSelectedEdge(isDeselecting ? null : edge);
+    setNodes((nds) => nds.map(n => ({ ...n, selected: false }))); // Deselect nodes
     setEditingNode(null); 
     setIsFormVisible(false);
-  }, [setNodes]);
+    setActiveTool('select');
+
+    // Find and set edge label text
+    if (!isDeselecting) {
+      const labelNode = nodes.find(n => 
+        n.type === 'edgeLabel' && 
+        // Assert via unknown
+        (n.data as unknown as EdgeLabelData)?.edgeId === edge.id
+      );
+      // Assert via unknown here too
+      setSelectedEdgeLabelText(labelNode ? (labelNode.data as unknown as EdgeLabelData).text : null);
+    } else {
+      setSelectedEdgeLabelText(null); // Clear label text on deselect
+    }
+  }, [setNodes, setActiveTool, selectedEdge, nodes]); // Add selectedEdge and nodes to dependencies
 
   // --- Form Handling ---
   const openNodeForm = useCallback((nodeToEdit?: Node<NodeData>) => {
     setEditingNode(nodeToEdit || null);
     setIsFormVisible(true);
     setSelectedEdge(null);
-  }, []);
+    setActiveTool('select');
+  }, [setActiveTool]);
 
   const handleCancelForm = useCallback(() => {
     setIsFormVisible(false);
@@ -275,7 +305,7 @@ function App() {
       setEditingNode(null); // Clear editing state
     } else {
       // Add new node
-      const newNodeId = getNextNodeId();
+      const newNodeId = getNextId();
       const newNode: Node<NodeData> = {
         id: newNodeId,
         position: { x: Math.random() * 400, y: Math.random() * 400 }, // Initial random position
@@ -294,7 +324,9 @@ function App() {
 
   // --- Copy Handler ---
   const handleCopy = useCallback(() => {
-    const selected = nodes.filter((node) => node.selected);
+    const selected = nodes.filter((node): node is Node<NodeData> => 
+      node.selected === true && node.type === 'custom'
+    );
     if (selected.length > 0) {
       setCopiedNodes(selected);
       console.log('Copied nodes:', selected.map(n => n.id));
@@ -305,7 +337,7 @@ function App() {
   const handlePaste = useCallback(() => {
     if (copiedNodes.length === 0) return;
     const newNodes = copiedNodes.map((node) => {
-      const newNodeId = getNextNodeId();
+      const newNodeId = getNextId();
       return {
         ...node,
         id: newNodeId,
@@ -322,8 +354,14 @@ function App() {
 
   // --- Double Click Handler ---
   const onNodeDoubleClick: NodeMouseHandler = useCallback((_event, node) => {
-     openNodeForm(node);
-  }, [openNodeForm]);
+     if (node.type === 'custom') {
+       setEditingNode(node as Node<NodeData>); 
+       openNodeForm(node as Node<NodeData>);
+     } else if (node.type === 'textAnnotation') {
+       // Could trigger inline editing here later
+     }
+     setActiveTool('select');
+  }, [openNodeForm, setActiveTool]);
 
   // --- Layout Handler ---
   const handleLayoutNodes = useCallback((direction: string = 'LR') => {
@@ -355,22 +393,34 @@ function App() {
   // --- Re-add onConnect Handler ---
   const onConnect = useCallback(
     (params: Edge | Connection) => 
-      setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions, data: { details: '' } }, eds)),
+      setEdges((eds) => addEdge({ ...params, ...defaultEdgeOptions, data: {} }, eds)),
     [setEdges],
   );
 
-  // --- Keyboard Event Listener for Copy/Paste --- 
-  const handleKeyDown = (event: KeyboardEvent) => {
+  // --- Keyboard Event Listener (Modified for edge label deletion) ---
+   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
       return; 
     }
     if (event.key === 'Delete' || event.key === 'Backspace') {
       const selectedNodeIds = nodes.filter(n => n.selected).map(n => n.id);
       const selectedEdgeIds = edges.filter(e => e.selected).map(e => e.id);
-      if (selectedNodeIds.length > 0 || selectedEdgeIds.length > 0) {
-        setNodes(nds => nds.filter(n => !n.selected));
-        setEdges(eds => eds.filter(e => !e.selected));
-        setSelectedEdge(null); 
+      
+      // Find edge label nodes associated with selected edges
+      const labelNodesToDelete = nodes.filter(n => 
+          n.type === 'edgeLabel' && 
+          // Cast n.data safely
+          selectedEdgeIds.includes((n.data as unknown as EdgeLabelData)?.edgeId) 
+        ).map(n => n.id);
+        
+      const allNodeIdsToDelete = [...new Set([...selectedNodeIds, ...labelNodesToDelete])];
+
+      if (allNodeIdsToDelete.length > 0) {
+          setNodes((nds) => nds.filter(n => !allNodeIdsToDelete.includes(n.id)));
+      }
+      if (selectedEdgeIds.length > 0) {
+          setEdges((eds) => eds.filter(e => !selectedEdgeIds.includes(e.id)));
+          setSelectedEdge(null); // Ensure edge selection is cleared
       }
     }
     if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
@@ -386,6 +436,67 @@ function App() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
+
+  // --- Effect to update EdgeLabel positions ---
+  useEffect(() => {
+    const edgeLabelNodes = nodes.filter(n => n.type === 'edgeLabel');
+    if (edgeLabelNodes.length === 0) {
+      return; // No labels to update
+    }
+
+    let needsUpdate = false;
+    const updates: { id: string; position: XYPosition }[] = [];
+
+    edgeLabelNodes.forEach(labelNode => {
+      // Assert the type via unknown
+      const data = labelNode.data as unknown as EdgeLabelData;
+      const edge = reactFlowInstance.getEdge(data.edgeId);
+      if (!edge) return;
+
+      const sourceNode = reactFlowInstance.getNode(edge.source);
+      const targetNode = reactFlowInstance.getNode(edge.target);
+      if (!sourceNode || !targetNode) return;
+
+      // Calculate edge midpoint
+      const sourceX = sourceNode.position.x + (sourceNode.width ?? 0) / 2;
+      const sourceY = sourceNode.position.y + (sourceNode.height ?? 0) / 2;
+      const targetX = targetNode.position.x + (targetNode.width ?? 0) / 2;
+      const targetY = targetNode.position.y + (targetNode.height ?? 0) / 2;
+      const midX = (sourceX + targetX) / 2;
+      const midY = (sourceY + targetY) / 2;
+
+      // Get label size (approximate or use actual dimensions if available)
+      const labelWidth = labelNode.width ?? 60; // Guess width
+      const labelHeight = labelNode.height ?? 20; // Guess height
+
+      // Get stored offset or use default (0, 0)
+      const offset = data.offset || { dx: 0, dy: 0 };
+
+      // Calculate target position
+      const targetPosition = {
+        x: midX + offset.dx - labelWidth / 2, // Adjust for label dimensions
+        y: midY + offset.dy - labelHeight / 2,
+      };
+
+      // Check if position needs updating (with a small tolerance)
+      const tolerance = 0.1;
+      if (Math.abs(labelNode.position.x - targetPosition.x) > tolerance ||
+          Math.abs(labelNode.position.y - targetPosition.y) > tolerance) {
+          updates.push({ id: labelNode.id, position: targetPosition });
+          needsUpdate = true;
+      }
+    });
+
+    if (needsUpdate) {
+      // console.log("[EdgeLabel Update] Updating positions:", updates);
+      setNodes(nds =>
+        nds.map(n => {
+          const update = updates.find(u => u.id === n.id);
+          return update ? { ...n, position: update.position } : n;
+        })
+      );
+    }
+  }, [nodes, edges, setNodes, reactFlowInstance]); // Rerun when nodes or edges change
 
   // --- Save PNG Handler (Simplified) ---
   const handleSavePNG = useCallback(() => {
@@ -403,7 +514,9 @@ function App() {
            // Filter out controls, minimap, attribution
            if (domNode?.classList?.contains('react-flow__controls') ||
                domNode?.classList?.contains('react-flow__minimap') ||
-               domNode?.classList?.contains('react-flow__attribution')
+               domNode?.classList?.contains('react-flow__attribution') ||
+               domNode?.parentElement?.classList.contains('react-flow__controls') || // Also filter children of controls
+               domNode?.closest('.floating-toolbar-container') // Filter toolbar and its children
             ) {
              return false;
            }
@@ -480,6 +593,122 @@ function App() {
   // --- Dynamic Tailwind class for toggle button positioning ---
   const toggleButtonLeftClass = isSidebarVisible ? `left-[${SIDEBAR_WIDTH - 13}px]` : `left-[${COLLAPSED_WIDTH - 13}px]`;
 
+  // --- Landing Page Handler ---
+  const handleLaunchApp = () => {
+    setShowLandingPage(false);
+  };
+
+  // --- Edge Double Click Handler (Modified) ---
+  const handleEdgeDoubleClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
+    // Check if a label node already exists for this edge
+    // Cast node.data safely
+    const existingLabelNode = nodes.find(node => node.type === 'edgeLabel' && (node.data as unknown as EdgeLabelData)?.edgeId === edge.id);
+    if (existingLabelNode) {
+      // Optional: Focus or trigger edit on existing node?
+      console.log("Label already exists for this edge.");
+      // Possibly select the node:
+      // setNodes(nds => nds.map(n => ({...n, selected: n.id === existingLabelNode.id})));
+      // setSelectedEdge(null); // Deselect edge if selecting label node
+      return; 
+    }
+
+    // Calculate position (approximate midpoint)
+    // Need source/target nodes for position calculation
+    const sourceNode = reactFlowInstance.getNode(edge.source);
+    const targetNode = reactFlowInstance.getNode(edge.target);
+
+    if (!sourceNode || !targetNode) {
+      console.error("Could not find source or target node for edge label positioning.");
+      return;
+    }
+
+    // Simple midpoint calculation
+    const position = {
+      x: (sourceNode.position.x + (sourceNode.width ?? 100) / 2 + targetNode.position.x + (targetNode.width ?? 100) / 2) / 2 - 30, // Adjust for label width guess
+      y: (sourceNode.position.y + (sourceNode.height ?? 50) / 2 + targetNode.position.y + (targetNode.height ?? 50) / 2) / 2 - 10, // Adjust for label height guess
+    };
+
+    // Create the new label node with empty text and startEditing flag
+    const newLabelNode: Node<EdgeLabelData> = {
+      id: getNextId('edgeLabel'),
+      type: 'edgeLabel', // Use the correct node type
+      position,
+      data: { 
+        edgeId: edge.id, 
+        text: '', // Start with empty text
+        label: '', // Satisfy NodeData 
+        startEditing: true // Add the flag
+      }, 
+      draggable: true, 
+      selectable: true,
+      className: 'nopan', // Keep nopan to allow edge interaction underneath
+    };
+
+    // Add the new node to the state
+    setNodes((nds) => nds.concat(newLabelNode as Node)); // Cast needed because Node<T> vs Node
+    setActiveTool('select');
+
+  }, [nodes, setNodes, reactFlowInstance, setActiveTool]);
+
+  // --- Toolbar Handler ---
+  const handleToolSelect = useCallback((tool: DrawingTool) => {
+    setActiveTool(tool);
+    // Restore deselect logic
+    if (tool !== 'select') {
+        setNodes((nds) => nds.map(n => ({ ...n, selected: false })));
+        setSelectedEdge(null);
+    }
+  }, [setNodes, setActiveTool]);
+
+  // --- Handle Node Drag Stop for Edge Labels ---
+  const handleNodeDragStop: NodeMouseHandler = useCallback((_event, node) => {
+    if (node.type !== 'edgeLabel') {
+      return; // Only handle edge labels
+    }
+    // Assert the type via unknown
+    const data = node.data as unknown as EdgeLabelData;
+    const edge = reactFlowInstance.getEdge(data.edgeId);
+    if (!edge) return;
+
+    const sourceNode = reactFlowInstance.getNode(edge.source);
+    const targetNode = reactFlowInstance.getNode(edge.target);
+    if (!sourceNode || !targetNode) return;
+
+    // Calculate edge midpoint
+    const sourceX = sourceNode.position.x + (sourceNode.width ?? 0) / 2;
+    const sourceY = sourceNode.position.y + (sourceNode.height ?? 0) / 2;
+    const targetX = targetNode.position.x + (targetNode.width ?? 0) / 2;
+    const targetY = targetNode.position.y + (targetNode.height ?? 0) / 2;
+    const midX = (sourceX + targetX) / 2;
+    const midY = (sourceY + targetY) / 2;
+
+    // Get label size (approximate or use actual dimensions if available)
+    const labelWidth = node.width ?? 60; // Guess width
+    const labelHeight = node.height ?? 20; // Guess height
+
+    // Calculate the offset based on final dragged position
+    const offsetX = (node.position.x + labelWidth / 2) - midX;
+    const offsetY = (node.position.y + labelHeight / 2) - midY;
+    const newOffset = { dx: offsetX, dy: offsetY };
+
+    // console.log(`[EdgeLabel ${node.id}] Drag Stop - Calculated Offset:`, newOffset);
+
+    // Update the node's data with the new offset
+    setNodes(nds =>
+      nds.map(n => {
+        if (n.id === node.id) {
+          return { ...n, data: { ...n.data, offset: newOffset } };
+        }
+        return n;
+      })
+    );
+  }, [reactFlowInstance, setNodes, nodes, edges]); // Dependencies needed
+
+  // Render Landing Page if needed
+  if (showLandingPage) {
+    return <LandingPage onLaunchApp={handleLaunchApp} />;
+  }
+
   return (
     // Main container using Flexbox and Tailwind
     <div className="flex h-screen font-inter"> 
@@ -495,6 +724,7 @@ function App() {
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
+        edgeLabelText={selectedEdgeLabelText} // Pass the label text state
       />
       {/* Toggle button using Tailwind classes */}
       <button 
@@ -505,7 +735,11 @@ function App() {
         {isSidebarVisible ? '<' : '>'} 
       </button>
       {/* React Flow Wrapper using Tailwind */}
-      <div ref={reactFlowWrapper} className="relative h-full flex-grow bg-gray-50"> 
+      <div ref={reactFlowWrapper} className="relative h-full flex-grow bg-gray-50 floating-toolbar-container"> 
+        <FloatingToolbar 
+           activeTool={activeTool} 
+           onToolSelect={handleToolSelect}
+        />
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
@@ -515,14 +749,16 @@ function App() {
           nodeTypes={nodeTypes} 
           onEdgeClick={onEdgeClick}
           onNodeDoubleClick={onNodeDoubleClick} 
+          onEdgeDoubleClick={handleEdgeDoubleClick}
+          onNodeDragStop={handleNodeDragStop}
           fitView 
           defaultEdgeOptions={defaultEdgeOptions}
-          panOnDrag={[2]} // Enable panning only with Right mouse button
+          panOnDrag={activeTool === 'select' ? [0, 1, 2] : undefined}
           selectionOnDrag={true} // Enable drag selection box
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
           deleteKeyCode={null} 
           proOptions={{ hideAttribution: true }}
-          className="bg-transparent" // Use parent div for background styling
+          className={`drawing-tool-${activeTool}`}
         >
           <Controls />
           <Background />
@@ -551,7 +787,7 @@ function App() {
 
 // Wrap App with ReactFlowProvider 
 function AppWrapper() {
-  const [showLandingPage, setShowLandingPage] = useState(true);
+  const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
 
   const handleAppLaunch = useCallback(() => {
     setShowLandingPage(false);

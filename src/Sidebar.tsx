@@ -15,6 +15,7 @@ interface EdgeData { ... }
 interface SidebarProps {
   selectedNodes: Node<NodeData>[];
   selectedEdge: Edge<EdgeData> | null;
+  edgeLabelText?: string | null;
   nodes: Node<NodeData>[];
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
@@ -43,6 +44,7 @@ const ClickableHeader: React.FC<{ title: string; isExpanded: boolean; onClick: (
 const Sidebar: React.FC<SidebarProps> = ({ 
   selectedNodes,
   selectedEdge,
+  edgeLabelText,
   nodes,
   edges,
   setEdges,
@@ -276,6 +278,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                         <div>
                             <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Source:</span> <span className="text-right break-words">{nodes.find(n => n.id === selectedEdge.source)?.data.label || 'N/A'}</span></div>
                             <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Target:</span> <span className="text-right break-words">{nodes.find(n => n.id === selectedEdge.target)?.data.label || 'N/A'}</span></div>
+                            {edgeLabelText !== null && edgeLabelText !== undefined && (
+                              <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{edgeLabelText}</span></div>
+                            )}
                             <hr className="my-3 border-gray-200" />
                             <label className="mb-1 block text-xs font-medium text-gray-500">Details:</label>
                             <textarea 
