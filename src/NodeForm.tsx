@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 // Import new config structure and helpers
 import { 
   // entityConfig, // Remove unused import
@@ -11,7 +11,7 @@ import {
 } from './config/nodeTypesConfig';
 import { NodeData } from './App'; // Use shared NodeData type
 // Import palettes
-import { nodePalettes, getPaletteByName, NodePalette } from './config/nodePalettes';
+import { nodePalettes } from './config/nodePalettes';
 import PalettePreviewNode from './config/PalettePreviewNode'; // Import the preview component
 
 // Form data structure (used internally for state)
