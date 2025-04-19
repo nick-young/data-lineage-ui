@@ -4,7 +4,6 @@ import 'reactflow/dist/style.css';
 // If the import above doesn't resolve, comment it out and add a note:
 // NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
 import dagre from 'dagre'; // Import dagre
-import * as htmlToImage from 'html-to-image'; // Added
 
 import CustomNode from './CustomNode'; // Import the custom node
 import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import Sidebar and constants
@@ -509,38 +508,7 @@ function App() {
   }, [nodes, edges, setNodes, reactFlowInstance]); // Rerun when nodes or edges change
 
   // --- Save PNG Handler (Simplified) ---
-  const handleSavePNG = useCallback(() => {
-    // Target the viewport for reliable capture of visible area
-    const flowPane = document.querySelector('.react-flow__viewport') as HTMLElement;
-    if (!flowPane) {
-      console.error('React Flow viewport not found!');
-      return;
-    }
-
-    htmlToImage.toPng(flowPane, {
-        pixelRatio: 1.5, 
-        backgroundColor: '#ffffff', // Explicit white background
-        filter: (domNode) => {
-           // Filter out controls, minimap, attribution
-           if (domNode?.classList?.contains('react-flow__controls') ||
-               domNode?.classList?.contains('react-flow__minimap') ||
-               domNode?.classList?.contains('react-flow__attribution') ||
-               domNode?.parentElement?.classList.contains('react-flow__controls') || // Also filter children of controls
-               domNode?.closest('.floating-toolbar-container') // Filter toolbar and its children
-            ) {
-             return false;
-           }
-           return true;
-         }
-      })
-      .then((dataUrl) => {
-        downloadFile(dataUrl, 'data-lineage-flow.png');
-      })
-      .catch((error) => {
-        console.error('Failed to save PNG:', error);
-        alert('Error saving PNG.');
-      });
-  }, []); // Removed dependencies as we only use document query
+  // const handleSavePNG = useCallback(() => { ... }); (remove the entire function)
 
   // --- Save Flow Handler (JSON) ---
   const handleSaveFlow = useCallback(() => {
@@ -839,7 +807,6 @@ function App() {
         edges={edges}
         setEdges={setEdges}
         onAddNodeClick={handleAddNode}
-        onSavePNG={handleSavePNG}
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
