@@ -5,6 +5,7 @@ import { version } from '../package.json'; // Corrected import path
 // Import palette helpers and preview component
 import { NodePalette, getPaletteByName, nodePalettes } from './config/nodePalettes';
 import PalettePreviewNode from './config/PalettePreviewNode';
+import DownloadButton from './DownloadButton';
 
 // Define the expected data structure for the selected node
 /* 
@@ -20,7 +21,6 @@ interface SidebarProps {
   edges: Edge<EdgeData>[];
   setEdges: React.Dispatch<React.SetStateAction<Edge<EdgeData>[]>>;
   onAddNodeClick: () => void;
-  onSavePNG: () => void;
   onSaveFlow: () => void;
   onLoadFlowTrigger: () => void;
   onLayoutNodesClick?: (direction: 'LR' | 'RL') => void;
@@ -49,7 +49,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   edges,
   setEdges,
   onAddNodeClick,
-  onSavePNG,
   onSaveFlow,
   onLoadFlowTrigger,
   onLayoutNodesClick,
@@ -302,13 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
             <div className="mb-2 flex justify-center gap-2">
-               <button 
-                 onClick={onSavePNG} 
-                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                 title="Save as PNG"
-               >
-                 Download as PNG
-               </button>
+               <DownloadButton />
                <button 
                  onClick={onSaveFlow} 
                  className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
