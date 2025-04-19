@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.1](https://github.com/nick-young/data-lineage-ui/compare/v0.1.0...v0.1.1) (2025-04-19)
+
+
+### Features
+
+* add colour palette ([ee50531](https://github.com/nick-young/data-lineage-ui/commit/ee50531d2ae37cdad1c940d4b7a92c23c0955060))
+* added edge labels ([3235e66](https://github.com/nick-young/data-lineage-ui/commit/3235e66e8fbe8ff0722ddee66cfddb35c3efaab0))
+
+
+### Bug Fixes
+
+* highlighting and refactor css ([dc8db17](https://github.com/nick-young/data-lineage-ui/commit/dc8db17ccb98940ffd251c5effb394bfa8396de2))
+* layout nodes ([9e0eddd](https://github.com/nick-young/data-lineage-ui/commit/9e0eddd4ede8e26732e86a857ac474945b0bad98))
+* lint ([246bcea](https://github.com/nick-young/data-lineage-ui/commit/246bcea4df932703f4c7cc75b1264fe0737effb5))
+* linting ([bd261d3](https://github.com/nick-young/data-lineage-ui/commit/bd261d3f14e3395c6593aa1808107f67e0b6f772))
+* remove floating toolbar. workable scrolling ([4010f1b](https://github.com/nick-young/data-lineage-ui/commit/4010f1b033e70cfe975859a8b1d9fd450e4e1adb))
+
 ## [0.1.0](https://github.com/nick-young/data-lineage-ui/compare/v0.0.8...v0.1.0) (2025-04-18)
 
 
