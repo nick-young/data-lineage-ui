@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Edge, Node as FlowNode } from 'reactflow';
+import { Edge } from 'reactflow';
 
 interface ContextMenuProps {
   x: number;
@@ -12,7 +12,6 @@ interface ContextMenuProps {
   onDeleteEdge: (id: string) => void;
   onAddLabel: (event: React.MouseEvent, edge: Edge) => void;
   selectedEdge: Edge | null;
-  nodes: FlowNode[];
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -26,7 +25,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDeleteEdge,
   onAddLabel,
   selectedEdge,
-  nodes,
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 

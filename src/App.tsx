@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, EdgeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap, XYPosition, NodeHandleBounds, SelectionMode } from 'reactflow'; // Re-add Background and Controls
+import ReactFlow, { Node, Edge, NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap, XYPosition, SelectionMode } from 'reactflow'; // Re-add Background and Controls
 import 'reactflow/dist/style.css';
 // If the import above doesn't resolve, comment it out and add a note:
 // NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
@@ -11,7 +11,7 @@ import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import S
 import NodeForm from './NodeForm'; // Import NodeForm
 import LandingPage from './LandingPage'; // Import the LandingPage component
 import EdgeLabelNode from './EdgeLabelNode'; // Import the component itself
-import type { EdgeLabelData, TextAnnotationData } from './types'; // Import the type from types.ts
+import type { EdgeLabelData } from './types'; // Remove TextAnnotationData
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -216,7 +216,6 @@ function App() {
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
   const [isSidebarVisible, setIsSidebarVisible] = useState(true); // State for sidebar visibility
   const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
-  const [activeTool, setActiveTool] = useState<'select'>('select');
   const [selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
 
   // --- Derive selected nodes state ---
@@ -664,7 +663,7 @@ function App() {
   const prevSelectedEdgeIdsRef = useRef<string[]>([]);
 
   // Completely replace the handleSelectionChange function
-  const handleSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges } : { nodes: Node[], edges: Edge[] }) => {
+  const handleSelectionChange = useCallback(({ nodes, edges: selectedEdges } : { nodes: Node[], edges: Edge[] }) => {
     // Get current selection IDs
     const currentSelectedEdgeIds = selectedEdges.map(e => e.id);
     
@@ -815,7 +814,7 @@ function App() {
   }, [reactFlowInstance, setNodes]);
 
   // Add a custom selection handler that ensures nodes are selected with edges
-  const handleSelectionStart = useCallback((event: React.MouseEvent) => {
+  const handleSelectionStart = useCallback(() => {
     // Record the initial point where selection started
     console.log("Selection started");
   }, []);

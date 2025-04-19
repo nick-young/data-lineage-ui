@@ -1,5 +1,5 @@
 import { FC, useCallback } from 'react';
-import { Handle, NodeProps, Position } from 'reactflow';
+import { NodeProps } from 'reactflow';
 import { EdgeLabelData } from '../types';
 
 const EdgeLabelNode: FC<NodeProps<EdgeLabelData>> = ({ 

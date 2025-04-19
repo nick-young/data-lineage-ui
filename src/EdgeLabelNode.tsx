@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Handle, Position, useNodes, useReactFlow, NodeProps } from 'reactflow';
-import { EdgeLabelData } from './types'; // Assuming types.ts is in the same directory
+import React, { useState, useEffect } from 'react';
+import { useReactFlow, NodeProps } from 'reactflow';
+import { EdgeLabelData } from './types';
 
 // Basic styling for the node
 const nodeStyle: React.CSSProperties = {
@@ -29,7 +29,6 @@ function EdgeLabelNode({ id, data, selected }: NodeProps<EdgeLabelData>) {
   const [isEditing, setIsEditing] = useState(false);
   const [currentText, setCurrentText] = useState(data.text || ''); // Use data.text
   const { setNodes } = useReactFlow();
-  const nodes = useNodes<EdgeLabelData>();
 
   // Log state changes
   // console.log(`[EdgeLabelNode ${id}] Render - isEditing: ${isEditing}, selected: ${selected}`);
