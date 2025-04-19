@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.2](https://github.com/nick-young/data-lineage-ui/compare/v0.1.1...v0.1.2) (2025-04-19)
+
+
+### Bug Fixes
+
+* Save as PNG fix to export entire canvas ([3fbbaad](https://github.com/nick-young/data-lineage-ui/commit/3fbbaad39ca36803e254bd850b1e34be8c917953))
+
 ### [0.1.1](https://github.com/nick-young/data-lineage-ui/compare/v0.1.0...v0.1.1) (2025-04-19)
 
 
