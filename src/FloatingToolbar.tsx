@@ -1,7 +1,7 @@
 import React from 'react';
 
 // Define the DrawingTool type here or import from types if it exists there
-export type DrawingTool = 'select' | 'text' | 'edge'; // Add other tools as needed
+export type DrawingTool = 'select' | 'rectangle' | 'text'; // Add other tools as needed
 
 interface FloatingToolbarProps {
   activeTool: DrawingTool;

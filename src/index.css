@@ -96,3 +96,122 @@ button:focus-visible {
   background-color: #0742a3; /* Darker blue on hover */
   border-color: #0742a3;
 }
+
+/* ======================================== */
+/* React Flow Interaction Styles            */
+/* ======================================== */
+
+/* --- Canvas Styles --- */
+.react-flow {
+  background-color: #f8f9fa;
+}
+
+/* Enable proper selection box behavior */
+.react-flow__pane {
+  cursor: default;
+}
+
+.react-flow__selection {
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid #3b82f6;
+  border-radius: 2px;
+}
+
+/* --- Node Styles --- */
+.react-flow__node {
+  transition: outline 0.2s, filter 0.2s;
+}
+
+/* Selected node styling */
+.react-flow__node.selected {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  filter: drop-shadow(0 4px 3px rgb(0 0 0 / 0.07)) drop-shadow(0 2px 2px rgb(0 0 0 / 0.06));
+}
+
+/* Hover effect for nodes */
+.react-flow__node:hover {
+  outline: 1px solid rgba(59, 130, 246, 0.5);
+  outline-offset: 2px;
+}
+
+/* --- Edge Styles --- */
+.react-flow__edge-path {
+  stroke: #adb5bd;
+  stroke-width: 1.5;
+  transition: stroke 0.2s, stroke-width 0.2s;
+}
+
+/* Handle edge hover */
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: #6b7280;
+  stroke-width: 2;
+}
+
+/* Selected edge styling */
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #3b82f6;
+  stroke-width: 2.5;
+}
+
+/* Edge markers (arrows) */
+.react-flow__edge.selected .react-flow__edge-marker path {
+  fill: #3b82f6;
+  stroke: #3b82f6;
+}
+
+/* --- Controls and UI Elements --- */
+.react-flow__controls {
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+  border-radius: 6px;
+}
+
+.react-flow__controls-button {
+  background-color: white;
+  border-bottom: 1px solid #eee;
+  box-sizing: content-box;
+}
+
+.react-flow__controls-button:hover {
+  background-color: #f8f9fa;
+}
+
+/* --- MiniMap --- */
+.react-flow__minimap {
+  background-color: white;
+  border-radius: 6px;
+  box-shadow: 0 3px 10px rgb(0 0 0 / 0.2);
+}
+
+/* --- Edge Label --- */
+.edge-label-node {
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  pointer-events: all;
+}
+
+.edge-label-node:hover,
+.edge-label-node.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}
+
+/* --- Text Annotation Node --- */
+.text-annotation-node {
+  background: rgba(255, 255, 255, 0.85);
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e5e7eb;
+  max-width: 250px;
+}
+
+.text-annotation-node.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
+}

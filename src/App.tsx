@@ -11,9 +11,10 @@ import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import S
 import NodeForm from './NodeForm'; // Import NodeForm
 import LandingPage from './LandingPage'; // Import the LandingPage component
 import FloatingToolbar, { DrawingTool } from './FloatingToolbar';
-import TextAnnotationNode, { TextAnnotationData } from './TextAnnotationNode';
+import TextAnnotationNode from './TextAnnotationNode';
 import EdgeLabelNode from './EdgeLabelNode'; // Import the component itself
-import type { EdgeLabelData } from './types'; // Import the type from types.ts
+import type { EdgeLabelData, TextAnnotationData } from './types'; // Import the type from types.ts
+import ContextMenu from './ContextMenu';
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -140,11 +141,14 @@ const getNextId = (prefix: string = 'node') => `${prefix}_${idCounter++}`;
 
 // Default options for new edges - Use Tailwind color if available, otherwise keep grey
 const defaultEdgeOptions = {
-  style: { strokeWidth: 1.5, stroke: '#adb5bd' }, // Kept grey for now, can use theme color later
+  style: { 
+    strokeWidth: 1.5, 
+    // stroke: '#adb5bd' // Remove default stroke color to allow CSS override
+  }, 
   type: 'default',
   markerEnd: {
     type: MarkerType.ArrowClosed,
-    color: '#adb5bd', // Kept grey for now
+    // color: '#adb5bd', // Remove default marker color to allow CSS override
     width: 15,
     height: 15,
   },
@@ -209,7 +213,7 @@ function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
   const [nodes, setNodes, onNodesChangeOriginal] = useNodesState(initialNodesData);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<EdgeData>(initialEdgesData);
+  const [edges, setEdges, onEdgesChangeOriginal] = useEdgesState<EdgeData>(initialEdgesData);
   const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); 
@@ -219,6 +223,18 @@ function App() {
   const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
   const [activeTool, setActiveTool] = useState<DrawingTool>('select');
   const [selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    show: boolean;
+    type: 'node' | 'edge' | 'pane';
+    id?: string;
+  }>({
+    x: 0,
+    y: 0,
+    show: false,
+    type: 'pane',
+  });
 
   // --- Derive selected nodes state ---
   const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
@@ -244,37 +260,64 @@ function App() {
     }
   }, [edges, selectedEdge?.id]);
 
-  // --- Custom onNodesChange hook ---
-  const onNodesChange: typeof onNodesChangeOriginal = useCallback((changes) => {
-    const isSelectionChange = changes.some(change => change.type === 'select');
-    if (isSelectionChange) {
-      setSelectedEdge(null); 
-    }
-    onNodesChangeOriginal(changes); 
-  }, [onNodesChangeOriginal]);
+  // --- Minimal onEdgesChange Wrapper (for SETTING marker color on selection) ---
+  const handleEdgesChange: typeof onEdgesChangeOriginal = useCallback((changes) => {
+    onEdgesChangeOriginal(changes); // Apply React Flow changes first
 
-  // --- Event Handlers & Callbacks ---
-  const onEdgeClick: EdgeMouseHandler = useCallback((_event, edge) => {
-    const isDeselecting = selectedEdge?.id === edge.id;
-    setSelectedEdge(isDeselecting ? null : edge);
-    setNodes((nds) => nds.map(n => ({ ...n, selected: false }))); // Deselect nodes
-    setEditingNode(null); 
-    setIsFormVisible(false);
-    setActiveTool('select');
+    changes.forEach(change => {
+      if (change.type === 'select' && change.selected === true) {
+        // Only handle setting color on selection
+        const edgeId = change.id;
+        console.log(`[handleEdgesChange] Edge ${edgeId} selected, setting marker color.`);
+        setEdges((eds) => eds.map((e) => {
+          if (e.id === edgeId) {
+            const originalMarker = typeof e.markerEnd === 'object' ? e.markerEnd : { type: MarkerType.ArrowClosed };
+            const markerType = originalMarker.type || MarkerType.ArrowClosed;
+            const newMarkerEnd = { ...originalMarker, type: markerType, color: '#3b82f6' }; 
+            return { ...e, markerEnd: newMarkerEnd }; // Apply colored marker
+          }
+          return e; 
+        }));
+      }
+      // NOTE: Marker reversion is handled by onSelectionChange
+    });
+  }, [onEdgesChangeOriginal, setEdges]); 
 
-    // Find and set edge label text
-    if (!isDeselecting) {
-      const labelNode = nodes.find(n => 
-        n.type === 'edgeLabel' && 
-        // Assert via unknown
-        (n.data as unknown as EdgeLabelData)?.edgeId === edge.id
-      );
-      // Assert via unknown here too
-      setSelectedEdgeLabelText(labelNode ? (labelNode.data as unknown as EdgeLabelData).text : null);
+  // --- Reactive State Sync (Effect) ---
+  // This useEffect syncs app state (selectedEdge, label text) AFTER React Flow state changes.
+  useEffect(() => {
+    const currentlySelectedEdge = edges.find(edge => edge.selected === true);
+
+    if (currentlySelectedEdge) {
+      if (selectedEdge?.id !== currentlySelectedEdge.id) {
+          console.log(`[useEffect-Edges] Edge ${currentlySelectedEdge.id} selected, updating app state.`);
+          setSelectedEdge(currentlySelectedEdge);
+          const labelNode = nodes.find(n => n.type === 'edgeLabel' && (n.data as unknown as EdgeLabelData)?.edgeId === currentlySelectedEdge.id);
+          setSelectedEdgeLabelText(labelNode ? (labelNode.data as unknown as EdgeLabelData).text : null);
+          // Deselect nodes when an edge is selected (React Flow might do this, but explicit is safer)
+          setNodes((nds) => nds.map(n => ({ ...n, selected: false })));
+      }
     } else {
-      setSelectedEdgeLabelText(null); // Clear label text on deselect
+      if (selectedEdge !== null) {
+          console.log('[useEffect-Edges] No edge selected, clearing app state.');
+          setSelectedEdge(null);
+          setSelectedEdgeLabelText(null);
+      }
     }
-  }, [setNodes, setActiveTool, selectedEdge, nodes]); // Add selectedEdge and nodes to dependencies
+  }, [edges, nodes, setNodes, selectedEdge, setSelectedEdge, setSelectedEdgeLabelText]); 
+
+  // --- useEffect to handle node selection causing edge deselection ---
+  // Note: Marker reversion is now handled by onSelectionChange
+  useEffect(() => {
+    const hasSelectedNode = nodes.some(n => n.selected);
+    if (hasSelectedNode && selectedEdge) {
+      console.log(`[useEffect-Nodes] Node selected, clearing selected edge state.`);
+      setSelectedEdge(null);
+      setSelectedEdgeLabelText(null);
+      // No need to call setEdges here to revert marker, onSelectionChange will handle it
+      // when it receives the empty edges array after node selection implicitly deselects edges.
+    }
+  }, [nodes, selectedEdge, setSelectedEdge, setSelectedEdgeLabelText]); // Removed setEdges
 
   // --- Form Handling ---
   const openNodeForm = useCallback((nodeToEdit?: Node<NodeData>) => {
@@ -319,8 +362,10 @@ function App() {
 
   // Simplified handler for the Add Node button (just opens the form)
   const handleAddNode = useCallback(() => {
-    openNodeForm(); // Open form without pre-filled data
-  }, [openNodeForm]);
+    setEditingNode(null);
+    openNodeForm();
+    setActiveTool('select');
+  }, [openNodeForm, setActiveTool]);
 
   // --- Copy Handler ---
   const handleCopy = useCallback(() => {
@@ -704,6 +749,120 @@ function App() {
     );
   }, [reactFlowInstance, setNodes, nodes, edges]); // Dependencies needed
 
+  // --- Handler for onSelectionChange --- 
+  const handleSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges } : { nodes: Node[], edges: Edge[] }) => {
+    console.log('[onSelectionChange] Fired', { nodeCount: selectedNodes.length, edgeCount: selectedEdges.length });
+    // If the final selection contains NO edges, revert all markers
+    if (selectedEdges.length === 0) {
+        console.log('[onSelectionChange] No edges selected, reverting all markers.')
+        setEdges((eds) => eds.map((e) => {
+            // Only modify if it actually has a color property to remove
+            if (typeof e.markerEnd === 'object' && e.markerEnd?.color) {
+                const originalMarker = e.markerEnd;
+                const markerType = originalMarker.type || MarkerType.ArrowClosed;
+                const newMarkerEnd = { type: markerType }; // Marker without color
+                return { ...e, markerEnd: newMarkerEnd };
+            }
+            return e; // Return unchanged if no color property exists
+        }));
+        // Ensure app state is also cleared (although useEffect should also catch this)
+        if (selectedEdge !== null) {
+            setSelectedEdge(null);
+            setSelectedEdgeLabelText(null);
+        }
+    }
+  }, [setEdges, selectedEdge, setSelectedEdge, setSelectedEdgeLabelText]); // Add relevant dependencies
+
+  // Add new contextMenu handler
+  const onContextMenu = useCallback(
+    (event: React.MouseEvent, node?: Node, edge?: Edge) => {
+      // Prevent default context menu
+      event.preventDefault();
+
+      // If a node or edge is right-clicked, deselect everything else
+      if (node) {
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: n.id === node.id })));
+        setSelectedEdge(null);
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          show: true,
+          type: 'node',
+          id: node.id,
+        });
+      } else if (edge) {
+        setSelectedEdge(edge);
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          show: true,
+          type: 'edge',
+          id: edge.id,
+        });
+      } else {
+        // Canvas context menu
+        setSelectedEdge(null);
+        setNodes((nds) => nds.map((n) => ({ ...n, selected: false })));
+        setContextMenu({
+          x: event.clientX,
+          y: event.clientY,
+          show: true,
+          type: 'pane',
+        });
+      }
+    },
+    [setNodes, setSelectedEdge]
+  );
+
+  // Add handler to close context menu
+  const onPaneClick = useCallback(() => {
+    setContextMenu((cm) => ({ ...cm, show: false }));
+  }, []);
+
+  // --- Node/Edge deletion handlers ---
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    // First remove all connected edges
+    const connectedEdges = edges.filter(
+      (edge) => edge.source === nodeId || edge.target === nodeId
+    );
+    
+    setEdges((eds) => 
+      eds.filter(
+        (edge) => edge.source !== nodeId && edge.target !== nodeId
+      )
+    );
+    
+    // Then remove the node itself
+    setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+    
+    console.log(`Deleted node: ${nodeId} and ${connectedEdges.length} connected edges`);
+  }, [nodes, edges, setNodes, setEdges]);
+
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    // Remove the edge
+    setEdges((eds) => eds.filter((edge) => edge.id !== edgeId));
+    
+    // Also remove any associated edge labels
+    setNodes((nds) => 
+      nds.filter((node) => {
+        if (node.type === 'edgeLabel') {
+          // Safe check if this is an EdgeLabelNode
+          const data = node.data as unknown as EdgeLabelData;
+          return data.edgeId !== edgeId;
+        }
+        return true;
+      })
+    );
+    
+    // Clear selection if we just deleted the selected edge
+    if (selectedEdge && selectedEdge.id === edgeId) {
+      setSelectedEdge(null);
+    }
+    
+    console.log(`Deleted edge: ${edgeId}`);
+  }, [selectedEdge, setEdges, setNodes, setSelectedEdge]);
+
   // Render Landing Page if needed
   if (showLandingPage) {
     return <LandingPage onLaunchApp={handleLaunchApp} />;
@@ -743,18 +902,24 @@ function App() {
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
-          onNodesChange={onNodesChange} 
-          onEdgesChange={onEdgesChange} 
+          onNodesChange={onNodesChangeOriginal} 
+          onEdgesChange={handleEdgesChange}   
           onConnect={onConnect}       
           nodeTypes={nodeTypes} 
-          onEdgeClick={onEdgeClick}
           onNodeDoubleClick={onNodeDoubleClick} 
           onEdgeDoubleClick={handleEdgeDoubleClick}
           onNodeDragStop={handleNodeDragStop}
+          onSelectionChange={handleSelectionChange} 
+          // Add context menu handlers
+          onContextMenu={onContextMenu}
+          onPaneClick={onPaneClick}
+          // Ensure drag selection is enabled
+          selectionOnDrag={true}
+          selectNodesOnDrag={true}
           fitView 
           defaultEdgeOptions={defaultEdgeOptions}
-          panOnDrag={activeTool === 'select' ? [0, 1, 2] : undefined}
-          selectionOnDrag={true} // Enable drag selection box
+          // Modify to only use middle mouse button for panning
+          panOnDrag={activeTool === 'select' ? [1] : undefined}
           multiSelectionKeyCode="Shift" // Explicitly set (though it's default)
           deleteKeyCode={null} 
           proOptions={{ hideAttribution: true }}
@@ -770,6 +935,22 @@ function App() {
               isEditing={!!editingNode}
               onSubmit={(data) => handleFormSubmit(data, !!editingNode, editingNode?.id)}
               onCancel={handleCancelForm}
+            />
+          )}
+          {/* Add context menu */}
+          {contextMenu.show && (
+            <ContextMenu
+              x={contextMenu.x}
+              y={contextMenu.y}
+              type={contextMenu.type}
+              id={contextMenu.id}
+              onClose={() => setContextMenu((cm) => ({ ...cm, show: false }))}
+              onAddNode={handleAddNode}
+              onDeleteNode={handleDeleteNode}
+              onDeleteEdge={handleDeleteEdge}
+              onAddLabel={handleEdgeDoubleClick}
+              selectedEdge={selectedEdge}
+              nodes={nodes}
             />
           )}
         </ReactFlow>
