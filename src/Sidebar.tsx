@@ -25,6 +25,7 @@ interface SidebarProps {
   onLoadFlowTrigger: () => void;
   onLayoutNodesClick?: (direction: 'LR' | 'RL') => void;
   isSidebarVisible: boolean;
+  onReturnToLanding: () => void;
 }
 
 // --- Constants ---
@@ -53,6 +54,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onLoadFlowTrigger,
   onLayoutNodesClick,
   isSidebarVisible,
+  onReturnToLanding,
 }) => {
   // State for expanding/collapsing sections
   const [expandedSections, setExpandedSections] = useState({
@@ -301,28 +303,30 @@ const Sidebar: React.FC<SidebarProps> = ({
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
             <div className="mb-2 flex justify-center gap-2">
-               <DownloadButton />
-               <button 
-                 onClick={onSaveFlow} 
-                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                 title="Save Flow (JSON)"
+              <button 
+                onClick={onReturnToLanding} 
+                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                title="Return to Landing Page"
+              >
+                Home
+              </button>
+              <DownloadButton />
+              <button 
+                onClick={onSaveFlow} 
+                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                title="Save Flow (JSON)"
+              >
+                Save File
+              </button>
+              <button 
+                onClick={onLoadFlowTrigger} 
+                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+                title="Load Flow (JSON)"
                >
-                 Save File
-               </button>
-               <button 
-                 onClick={onLoadFlowTrigger} 
-                 className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                 title="Load Flow (JSON)"
-                >
-                  Load File
-               </button>
+                 Load File
+              </button>
             </div>
-            <div className="flex items-center justify-between">
-              <span>Data Lineage v{version}</span>
-              <a href="/" className="flex items-center text-gray-500 hover:text-primary" title="Home">
-                <img src="./assets/logo.png" alt="Home" className="h-4 w-auto" />
-              </a>
-            </div>
+            <div className="text-center">Data Lineage UI v{version}</div>
           </div>
         </>
       )}

@@ -203,7 +203,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 };
 // --------------------------
 
-function App() {
+function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
   const [nodes, setNodes, onNodesChangeOriginal] = useNodesState(initialNodesData);
@@ -214,7 +214,6 @@ function App() {
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
   const [isSidebarVisible, setIsSidebarVisible] = useState(true); // State for sidebar visibility
-  const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
   const [selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
 
   // --- Derive selected nodes state ---
@@ -571,11 +570,6 @@ function App() {
   // --- Dynamic Tailwind class for toggle button positioning ---
   const toggleButtonLeftClass = isSidebarVisible ? `left-[${SIDEBAR_WIDTH - 13}px]` : `left-[${COLLAPSED_WIDTH - 13}px]`;
 
-  // --- Landing Page Handler ---
-  const handleLaunchApp = () => {
-    setShowLandingPage(false);
-  };
-
   // --- Edge Double Click Handler (Modified) ---
   const handleEdgeDoubleClick = useCallback((_event: React.MouseEvent, edge: Edge) => {
     // Check if a label node already exists for this edge
@@ -791,11 +785,6 @@ function App() {
     // REMOVED: Code that automatically selected connected nodes
   }, []);
 
-  // Render Landing Page if needed
-  if (showLandingPage) {
-    return <LandingPage onLaunchApp={handleLaunchApp} />;
-  }
-
   return (
     // Main container using Flexbox and Tailwind
     <div className="flex h-screen font-inter"> 
@@ -811,6 +800,7 @@ function App() {
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
         edgeLabelText={selectedEdgeLabelText} // Pass the label text state
+        onReturnToLanding={onReturnToLanding}
       />
       {/* Toggle button using Tailwind classes */}
       <button 
@@ -881,12 +871,18 @@ function App() {
   );
 }
 
-// Wrap App with ReactFlowProvider 
+// Wrap App with ReactFlowProvider
 function AppWrapper() {
-  const [showLandingPage, setShowLandingPage] = useState(() => !localStorage.getItem(LOCAL_STORAGE_KEY_NODES));
+  // Always start with the landing page
+  const [showLandingPage, setShowLandingPage] = useState(true);
 
   const handleAppLaunch = useCallback(() => {
     setShowLandingPage(false);
+  }, []);
+
+  // Add a function to return to the landing page
+  const handleReturnToLanding = useCallback(() => {
+    setShowLandingPage(true);
   }, []);
 
   if (showLandingPage) {
@@ -896,11 +892,12 @@ function AppWrapper() {
       </div>
     );
   }
-  
+
   return (
     <div className="app-container">
       <ReactFlowProvider>
-        <App />
+        {/* Pass the return function to App */}
+        <App onReturnToLanding={handleReturnToLanding} />
       </ReactFlowProvider>
     </div>
   );
