@@ -81,6 +81,7 @@ If you have Docker and Docker Compose (or the integrated `docker compose` comman
 *   State is primarily managed within the `App.tsx` component using React hooks (`useState`, `useCallback`, `useMemo`, `useEffect`).
 *   Node icons are configured in `src/config/nodeTypesConfig.ts` and sourced from `public/assets/om-icons/`.
 *   The `public` directory is served at the root by Vite.
+*   **`html-to-image` Version:** For the "Save as PNG" feature, ensure you are using `html-to-image` version `1.11.11`. Newer versions have known issues with exporting React Flow diagrams correctly, particularly with edges. ([See React Flow Docs](https://reactflow.dev/examples/misc/download-image))
 
 ### Versioning
 
