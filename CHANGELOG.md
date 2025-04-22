@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.5](https://github.com/nick-young/data-lineage-ui/compare/v0.1.4...v0.1.5) (2025-04-22)
+
+
+### Features
+
+* Added basic support for drawing rectangles. ([aa287b4](https://github.com/nick-young/data-lineage-ui/commit/aa287b48e5e982e3e4f80813a30f65397b4c21ab))
+* redesigned sidebar ([35afc1c](https://github.com/nick-young/data-lineage-ui/commit/35afc1c63320fe31e8e97f18429d0833a2695b93))
+* updated rectangle options ([63f8e26](https://github.com/nick-young/data-lineage-ui/commit/63f8e2616711c9a27b58437db801d49661075e7f))
+
+
+### Bug Fixes
+
+* landing page fix ([8ce8958](https://github.com/nick-young/data-lineage-ui/commit/8ce895883f6dd7b3fa1fb2c52a098ab26fcd5375))
+* lint errors ([b4a6979](https://github.com/nick-young/data-lineage-ui/commit/b4a697922c72f2fe072bdaa78518e6709157de19))
+* show only rectangle properties ([219ffad](https://github.com/nick-young/data-lineage-ui/commit/219ffaddf5343147343297bb9aff7458c5ff44bb))
+
 ### [0.1.4](https://github.com/nick-young/data-lineage-ui/compare/v0.1.3...v0.1.4) (2025-04-19)
 
 
