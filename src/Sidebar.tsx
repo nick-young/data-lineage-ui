@@ -277,6 +277,23 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       {/* Only render content if sidebar is visible */}
       {isSidebarVisible && (
         <>
+          {/* Header with Home button */}
+          {onReturnToLanding && (
+            <div className="border-b border-gray-200 p-3 flex justify-between items-center bg-gray-50">
+              <button
+                onClick={onReturnToLanding}
+                className="flex items-center text-gray-800 hover:text-blue-600 transition-colors duration-150 ease-in-out focus:outline-none"
+                title="Return to Home"
+              >
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                </svg>
+                <span className="font-medium">Home</span>
+              </button>
+              <span className="text-xs text-gray-500">v{version}</span>
+            </div>
+          )}
+          
           {/* Tools Section */}
           {onToolChange && (
             <div className="border-b border-gray-200 p-4">
@@ -641,13 +658,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
             <div className="mb-2 flex justify-center gap-3">
-              {onReturnToLanding && (
-                <IconButton
-                  icon={Icons.Home}
-                  label="Home"
-                  onClick={onReturnToLanding}
-                />
-              )}
               <button 
                 className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-50 text-gray-700"
                 title="Save as PNG"
@@ -675,7 +685,9 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                 />
               )}
             </div>
-            <div className="text-center">Data Lineage UI v{version}</div>
+            <div className="text-center">
+              <span>Data Lineage UI v{version}</span>
+            </div>
           </div>
         </>
       )}
