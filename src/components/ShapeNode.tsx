@@ -46,7 +46,7 @@ const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({
   const updateNodeInternals = useUpdateNodeInternals();
   
   // Create a dummy onResize function that satisfies the type requirements
-  const onResize = useCallback((_event: any, params: { width: number; height: number }) => {
+  const onResize = useCallback((_event: any, _params: { width: number; height: number }) => {
     // Note: This function only updates the visual size during resize
     // The actual data update happens in the parent component via onResizeEnd
   }, []);
