@@ -17,6 +17,7 @@ export interface ShapeNodeData {
   fontWeight: string;
   fontStyle: string;
   textDecoration: string;
+  fontColor?: string;
 }
 
 // Default values for properties when creating a new shape node
@@ -35,6 +36,7 @@ export const defaultShapeNodeData: ShapeNodeData = {
   fontWeight: 'normal',
   fontStyle: 'normal',
   textDecoration: 'none',
+  fontColor: '#000000', // Default black text
 };
 
 const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({ 
@@ -44,6 +46,11 @@ const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({
 }) => {
   const { setNodes } = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
+  
+  // Log data changes for debugging
+  React.useEffect(() => {
+    console.log(`ShapeNode ${id} data changed:`, data);
+  }, [data, id]);
   
   // Create a dummy onResize function that satisfies the type requirements
   const onResize = useCallback((_event: any, _params: { width: number; height: number }) => {
@@ -113,7 +120,7 @@ const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({
     fontWeight: data.fontWeight,
     fontStyle: data.fontStyle,
     textDecoration: data.textDecoration,
-    fill: '#000000', // Text color
+    fill: data.fontColor || '#000000',
   };
 
   return (

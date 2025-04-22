@@ -150,23 +150,35 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
   const handleRectangleUpdate = useCallback((property: string, value: any) => {
     if (!selectedRectangle || !selectedRectangle.id) return;
     
+    console.log(`Updating rectangle property: ${property} to value: ${value} for node: ${selectedRectangle.id}`);
+    
     // Find the node in nodes array
     if (setNodes && typeof setNodes === 'function') {
-      setNodes(nodes.map(node => {
-        if (node.id === selectedRectangle.id && node.type === 'shape') {
-          // Update the specific property in node data
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              [property]: value
-            }
-          };
-        }
-        return node;
-      }));
+      setNodes(prevNodes => 
+        prevNodes.map(node => {
+          if (node.id === selectedRectangle.id && node.type === 'shape') {
+            // Log the node before update
+            console.log('Node before update:', node);
+            
+            // Update the specific property in node data
+            const updatedNode = {
+              ...node,
+              data: {
+                ...node.data,
+                [property]: value
+              }
+            };
+            
+            // Log the node after update
+            console.log('Node after update:', updatedNode);
+            
+            return updatedNode;
+          }
+          return node;
+        })
+      );
     }
-  }, [selectedRectangle, setNodes, nodes]);
+  }, [selectedRectangle, setNodes]);
 
   // Memoized calculation of input/output nodes
   const { inputs, outputs } = useMemo(() => {
@@ -310,7 +322,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
               // Rectangle Properties - Show this when a rectangle is selected
               <div className="mb-6">
                 <h3 className="mb-2 text-base font-semibold text-gray-800">Rectangle Properties</h3>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   <div>
                     <label className="mb-1 block text-xs font-medium text-gray-500">Label</label>
                     <input
@@ -321,45 +333,143 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     />
                   </div>
                   
+                  {/* Text Formatting Controls */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Text Format</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRectangleUpdate('fontWeight', selectedRectangle.fontWeight === 'bold' ? 'normal' : 'bold')}
+                        className={`flex-1 p-1 border rounded ${selectedRectangle.fontWeight === 'bold' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Bold"
+                      >
+                        <span className="font-bold">B</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRectangleUpdate('fontStyle', selectedRectangle.fontStyle === 'italic' ? 'normal' : 'italic')}
+                        className={`flex-1 p-1 border rounded ${selectedRectangle.fontStyle === 'italic' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Italic"
+                      >
+                        <span className="italic">I</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRectangleUpdate('textDecoration', selectedRectangle.textDecoration === 'underline' ? 'none' : 'underline')}
+                        className={`flex-1 p-1 border rounded ${selectedRectangle.textDecoration === 'underline' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Underline"
+                      >
+                        <span className="underline">U</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Font Size and Font Color Controls */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
-                      <input
-                        type="number"
-                        value={selectedRectangle.width || 0}
-                        onChange={(e) => handleRectangleUpdate('width', parseFloat(e.target.value))}
-                        className="w-full p-1 border rounded"
-                      />
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Font Size</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={selectedRectangle.fontSize || 14}
+                          onChange={(e) => handleRectangleUpdate('fontSize', parseFloat(e.target.value))}
+                          className="w-full p-1 pr-8 border rounded"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
+                          px
+                        </div>
+                      </div>
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-gray-500">Height</label>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Font Color</label>
                       <input
-                        type="number"
-                        value={selectedRectangle.height || 0}
-                        onChange={(e) => handleRectangleUpdate('height', parseFloat(e.target.value))}
+                        type="color"
+                        value={selectedRectangle.fontColor || '#000000'}
+                        onChange={(e) => handleRectangleUpdate('fontColor', e.target.value)}
                         className="w-full p-1 border rounded"
                       />
                     </div>
                   </div>
                   
+                  {/* Text Position Controls */}
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500">Background Color</label>
-                    <input
-                      type="color"
-                      value={selectedRectangle.bgColor || '#ffffff'}
-                      onChange={(e) => handleRectangleUpdate('bgColor', e.target.value)}
-                      className="w-full p-1 border rounded"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Text Alignment</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Horizontal</label>
+                        <select
+                          value={selectedRectangle.textAlign || 'center'}
+                          onChange={(e) => handleRectangleUpdate('textAlign', e.target.value)}
+                          className="w-full p-1 border rounded"
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Vertical</label>
+                        <select
+                          value={selectedRectangle.verticalAlign || 'middle'}
+                          onChange={(e) => handleRectangleUpdate('verticalAlign', e.target.value)}
+                          className="w-full p-1 border rounded"
+                        >
+                          <option value="top">Top</option>
+                          <option value="middle">Middle</option>
+                          <option value="bottom">Bottom</option>
+                        </select>
+                      </div>
+                    </div>
                   </div>
                   
+                  {/* Color Palette Selector */}
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-gray-500">Border Color</label>
-                    <input
-                      type="color"
-                      value={selectedRectangle.borderColor || '#000000'}
-                      onChange={(e) => handleRectangleUpdate('borderColor', e.target.value)}
-                      className="w-full p-1 border rounded"
-                    />
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Color Palette</label>
+                    <div className="flex flex-wrap gap-2"> 
+                      {nodePalettes.map(p => {
+                        const isSelected = 
+                          selectedRectangle.bgColor === p.bgColor && 
+                          selectedRectangle.borderColor === p.borderColor;
+                        return (
+                          <div 
+                            key={p.name} 
+                            onClick={() => {
+                              handleRectangleUpdate('bgColor', p.bgColor);
+                              handleRectangleUpdate('borderColor', p.borderColor);
+                            }}
+                            className={`cursor-pointer p-0.5 rounded-md ${isSelected ? 'ring-2 ring-blue-500 ring-offset-1' : ''}`}
+                            title={p.name}
+                          >
+                            <PalettePreviewNode palette={p} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Custom Color Controls */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Custom Colors</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Background</label>
+                        <input
+                          type="color"
+                          value={selectedRectangle.bgColor || '#ffffff'}
+                          onChange={(e) => handleRectangleUpdate('bgColor', e.target.value)}
+                          className="w-full p-1 border rounded"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Border</label>
+                        <input
+                          type="color"
+                          value={selectedRectangle.borderColor || '#000000'}
+                          onChange={(e) => handleRectangleUpdate('borderColor', e.target.value)}
+                          className="w-full p-1 border rounded"
+                        />
+                      </div>
+                    </div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2">
@@ -383,6 +493,28 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                         <option value="dashed">Dashed</option>
                         <option value="dotted">Dotted</option>
                       </select>
+                    </div>
+                  </div>
+                  
+                  {/* Width and Height Controls moved to bottom */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
+                      <input
+                        type="number"
+                        value={selectedRectangle.width || 0}
+                        onChange={(e) => handleRectangleUpdate('width', parseFloat(e.target.value))}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Height</label>
+                      <input
+                        type="number"
+                        value={selectedRectangle.height || 0}
+                        onChange={(e) => handleRectangleUpdate('height', parseFloat(e.target.value))}
+                        className="w-full p-1 border rounded"
+                      />
                     </div>
                   </div>
                 </div>

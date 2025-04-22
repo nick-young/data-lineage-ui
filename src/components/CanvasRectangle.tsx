@@ -19,6 +19,7 @@ export interface RectangleData {
   fontWeight: string;
   fontStyle: string;
   textDecoration: string;
+  fontColor?: string;
 }
 
 // Note: The main implementation of rectangle functionality is now in src/components/ShapeNode.tsx
