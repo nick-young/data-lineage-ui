@@ -34,7 +34,7 @@ interface NodeFormState {
 interface NodeFormProps {
   initialData?: NodeData | null; // Use NodeData from App directly
   isEditing: boolean;
-  onSubmit: (data: NodeData) => void; // Submit function expects NodeData
+  onSubmit: (data: NodeData, isEditing: boolean, nodeId?: string) => void; // Updated to match App.tsx
   onCancel: () => void;
 }
 
@@ -197,7 +197,13 @@ const NodeForm: React.FC<NodeFormProps> = ({ initialData, isEditing, onSubmit, o
       // Do NOT submit palette name if using custom
     }
     
-    onSubmit(submitData); 
+    // Pass the data and editing state to the onSubmit callback
+    // If editing, we need to pass the node ID as well (from initialData)
+    if (isEditing && initialData && 'id' in initialData) {
+      onSubmit(submitData, isEditing, initialData.id as string);
+    } else {
+      onSubmit(submitData, isEditing, undefined);
+    }
   };
 
   // Get the icon URL for the currently selected type

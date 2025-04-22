@@ -1,16 +1,16 @@
-import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react'; // Import useEffect, useRef, useMemo
-import ReactFlow, { Node, Edge, NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap, XYPosition, SelectionMode } from 'reactflow'; // Re-add Background and Controls
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import ReactFlow, { Node, Edge, NodeMouseHandler, useNodesState, useEdgesState, addEdge, Connection, MarkerType, ReactFlowProvider, useReactFlow, Background, Controls, MiniMap, XYPosition, SelectionMode, NodeChange } from 'reactflow';
 import 'reactflow/dist/style.css';
-// If the import above doesn't resolve, comment it out and add a note:
-// NOTE: Make sure 'reactflow' package is installed. Run 'npm install reactflow'
-import dagre from 'dagre'; // Import dagre
+import dagre from 'dagre';
 
-import CustomNode from './CustomNode'; // Import the custom node
-import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar'; // Import Sidebar and constants
-import NodeForm from './NodeForm'; // Import NodeForm
-import LandingPage from './LandingPage'; // Import the LandingPage component
-import EdgeLabelNode from './EdgeLabelNode'; // Import the component itself
-import type { EdgeLabelData } from './types'; // Remove TextAnnotationData
+import CustomNode from './CustomNode';
+import Sidebar, { SIDEBAR_WIDTH, COLLAPSED_WIDTH } from './Sidebar';
+import NodeForm from './NodeForm';
+import EdgeLabelNode from './EdgeLabelNode';
+import type { EdgeLabelData } from './types';
+import ShapeNode from './components/ShapeNode';
+import { RectangleData } from './components/CanvasRectangle';
+import { ToolType } from './components/ToolType';
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -120,6 +120,7 @@ const initialEdgesData: Edge<EdgeData>[] = (() => {
 const nodeTypes = {
   custom: CustomNode,
   edgeLabel: EdgeLabelNode, // Keep edge label type
+  shape: ShapeNode,
 };
 
 // Adjust ID counter based on loaded nodes
@@ -203,21 +204,58 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'LR') => 
 };
 // --------------------------
 
-function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
+function App() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null); 
   const fileInputRef = useRef<HTMLInputElement>(null); // Ref for file input
   const [nodes, setNodes, onNodesChangeOriginal] = useNodesState(initialNodesData);
   const [edges, setEdges, onEdgesChangeOriginal] = useEdgesState<EdgeData>(initialEdgesData);
+  
+  // Create a custom nodes change handler that maintains rectangle z-index
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    // Apply the original changes
+    onNodesChangeOriginal(changes);
+    
+    // Immediately ensure shape nodes have z-index: -1
+    setNodes(currentNodes => 
+      currentNodes.map(node => {
+        // For shape nodes, ensure they always have zIndex -1
+        if (node.type === 'shape') {
+          // Force the z-index to be -1 no matter what
+          return { 
+            ...node, 
+            zIndex: -1,
+            // Add a style property that will override ReactFlow's selection styling
+            style: { 
+              ...node.style,
+              zIndex: -1 // CSS z-index to double-ensure it stays at the back
+            }
+          };
+        }
+        return node;
+      })
+    );
+  }, [onNodesChangeOriginal, setNodes]);
+  
   const [selectedEdge, setSelectedEdge] = useState<Edge<EdgeData> | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [editingNode, setEditingNode] = useState<Node<NodeData> | null>(null); 
   const [copiedNodes, setCopiedNodes] = useState<Node<NodeData>[]>([]); 
   const reactFlowInstance = useReactFlow<NodeData, EdgeData>(); 
   const [isSidebarVisible, setIsSidebarVisible] = useState(true); // State for sidebar visibility
-  const [selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
+  const [_selectedEdgeLabelText, setSelectedEdgeLabelText] = useState<string | null>(null); // State for edge label text
+  const [activeTool, setActiveTool] = useState<ToolType>('navigate'); // Active tool state
 
   // --- Derive selected nodes state ---
   const selectedNodes = useMemo(() => nodes.filter(n => n.selected), [nodes]);
+
+  // --- Derive selected rectangle state ---
+  const selectedRectangle = useMemo(() => {
+    const selectedShapeNode = nodes.find(n => n.selected && n.type === 'shape');
+    return selectedShapeNode ? {
+      id: selectedShapeNode.id,
+      ...selectedShapeNode.data
+    } : null;
+  }, [nodes]);
 
   // --- useEffects for saving, selection sync ---
   useEffect(() => {
@@ -320,6 +358,7 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
         position: { x: Math.random() * 400, y: Math.random() * 400 }, // Initial random position
         data: formData, 
         type: 'custom', // Use the custom node type
+        zIndex: 0 // Default zIndex for normal nodes (above rectangles)
       };
       setNodes((nds) => nds.concat(newNode));
     }
@@ -356,6 +395,8 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
           x: node.position.x + 20,
           y: node.position.y + 20,
         },
+        // Set zIndex based on node type
+        zIndex: node.type === 'shape' ? -1 : 0
       };
     });
     setNodes((nds) => nds.concat(newNodes));
@@ -387,7 +428,14 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
         const newNodes = currentNodes.map(node => {
           const newPosition = positionMap.get(node.id);
           if (newPosition && (node.position.x !== newPosition.x || node.position.y !== newPosition.y)) {
-            return { ...node, position: newPosition };
+            // Preserve zIndex when updating position - set default values if not present
+            const zIndex = node.zIndex !== undefined ? node.zIndex : 
+                         (node.type === 'shape' ? -1 : 0);
+            return { 
+              ...node, 
+              position: newPosition,
+              zIndex
+            };
           }
           return node;
         });
@@ -398,6 +446,49 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
     }
 
   }, [nodes, edges, setNodes]);
+
+  // --- Add Rectangle Handler ---
+  const handleAddRectangle = useCallback(() => {
+    // Get the current viewport to position the rectangle at the center
+    const { x, y, zoom } = reactFlowInstance.getViewport();
+    
+    // Get viewport dimensions
+    const viewportWidth = reactFlowWrapper.current?.clientWidth || 800;
+    const viewportHeight = reactFlowWrapper.current?.clientHeight || 600;
+    
+    // Calculate the center point in flow coordinates
+    const centerX = (viewportWidth / 2 - x) / zoom;
+    const centerY = (viewportHeight / 2 - y) / zoom;
+    
+    // Create a new rectangle node with default properties
+    const newNode: Node<NodeData> = {
+      id: `shape_${idCounter++}`,
+      type: 'shape',
+      position: { x: centerX - 100, y: centerY - 75 }, // Center the 200x150 rectangle
+      data: {
+        width: 200,
+        height: 150,
+        bgColor: '#f0f9ff',
+        borderColor: '#3b82f6',
+        borderWidth: 1,
+        borderStyle: 'solid',
+        textAlign: 'center',
+        verticalAlign: 'middle',
+        fontSize: 14,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        textDecoration: 'none',
+        label: ''
+      } as unknown as NodeData, // Cast to NodeData
+      selected: false,
+      zIndex: -1 // Set a negative zIndex to ensure the rectangle appears behind other nodes
+    };
+    
+    // Add the rectangle to nodes
+    setNodes(nodes => [...nodes, newNode]);
+    
+  }, [reactFlowInstance, setNodes, reactFlowWrapper]);
 
   // --- Re-add onConnect Handler ---
   const onConnect = useCallback(
@@ -430,6 +521,11 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
       if (selectedEdgeIds.length > 0) {
           setEdges((eds) => eds.filter(e => !selectedEdgeIds.includes(e.id)));
           setSelectedEdge(null); // Ensure edge selection is cleared
+      }
+      
+      // Handle deleting selected rectangle
+      if (selectedRectangle && 'id' in selectedRectangle) {
+        setNodes(nds => nds.filter(n => n.id !== selectedRectangle.id));
       }
     }
     if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
@@ -538,7 +634,18 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
         const flowData = JSON.parse(e.target?.result as string);
         if (flowData && Array.isArray(flowData.nodes) && Array.isArray(flowData.edges) && flowData.viewport) {
           // Basic validation passed
-          setNodes(flowData.nodes);
+          
+          // Ensure proper zIndex values for all nodes
+          const nodesWithZIndex = flowData.nodes.map((node: Node) => {
+            // If it's a shape/rectangle, set zIndex to -1
+            if (node.type === 'shape') {
+              return { ...node, zIndex: -1 };
+            }
+            // For other nodes, set zIndex to 0 if not already set
+            return { ...node, zIndex: node.zIndex ?? 0 };
+          });
+          
+          setNodes(nodesWithZIndex);
           setEdges(flowData.edges);
           reactFlowInstance.setViewport(flowData.viewport, { duration: 300 }); 
           console.log('Flow loaded successfully!');
@@ -625,7 +732,7 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
   const prevSelectedEdgeIdsRef = useRef<string[]>([]);
 
   // Completely replace the handleSelectionChange function
-  const handleSelectionChange = useCallback(({ nodes, edges: selectedEdges } : { nodes: Node[], edges: Edge[] }) => {
+  const handleSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges } : { nodes: Node[], edges: Edge[] }) => {
     // Get current selection IDs
     const currentSelectedEdgeIds = selectedEdges.map(e => e.id);
     
@@ -636,6 +743,32 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
     
     // Update the ref for next comparison
     prevSelectedEdgeIdsRef.current = currentSelectedEdgeIds;
+    
+    // Handle node zIndex based on selection
+    if (selectedNodes.length > 0) {
+      setNodes(nds => 
+        nds.map(node => {
+          // Skip rectangle nodes as they're handled by onNodesChange
+          if (node.type === 'shape') {
+            return node; // Don't modify shape nodes here
+          }
+          // If node is selected, bring it to front
+          else if (selectedNodes.some(n => n.id === node.id)) {
+            return {
+              ...node,
+              zIndex: 10 // High zIndex for selected nodes
+            };
+          }
+          // Default zIndex for other nodes
+          else {
+            return {
+              ...node,
+              zIndex: 0 // Standard zIndex for unselected nodes
+            };
+          }
+        })
+      );
+    }
     
     // Handle edge marker colors
     if (selectedEdges.length === 0) {
@@ -777,13 +910,41 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
 
   // Add a custom selection handler that ensures nodes are selected with edges
   const handleSelectionStart = useCallback(() => {
-    // Record the initial point where selection started
-    console.log("Selection started");
+    // Empty function - removed console.log
   }, []);
 
   const handleSelectionEnd = useCallback(() => {
     // REMOVED: Code that automatically selected connected nodes
   }, []);
+  
+  // Handle tool change
+  const handleToolChange = useCallback((tool: ToolType) => {
+    setActiveTool(tool);
+    
+    // Execute action based on tool
+    switch(tool) {
+      case 'node':
+        handleAddNode();
+        // Return to navigate mode after adding node
+        setActiveTool('navigate');
+        break;
+      case 'layout':
+        handleLayoutNodes();
+        // Return to navigate mode after layout
+        setActiveTool('navigate');
+        break;
+      case 'rectangle':
+        handleAddRectangle();
+        // Return to navigate mode after adding a rectangle
+        setActiveTool('navigate'); 
+        break;
+      case 'text':
+        // Future implementation
+        break;
+      default:
+        break;
+    }
+  }, [handleAddNode, handleLayoutNodes, handleAddRectangle]);
 
   return (
     // Main container using Flexbox and Tailwind
@@ -795,12 +956,14 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
         nodes={nodes}
         edges={edges}
         setEdges={setEdges}
+        setNodes={setNodes}
         onAddNodeClick={handleAddNode}
         onSaveFlow={handleSaveFlow}
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
-        edgeLabelText={selectedEdgeLabelText} // Pass the label text state
-        onReturnToLanding={onReturnToLanding}
+        selectedRectangle={selectedRectangle as RectangleData | null}
+        activeTool={activeTool}
+        onToolChange={handleToolChange}
       />
       {/* Toggle button using Tailwind classes */}
       <button 
@@ -815,7 +978,7 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
         <ReactFlow
           nodes={nodes} 
           edges={edges} 
-          onNodesChange={onNodesChangeOriginal} 
+          onNodesChange={onNodesChange} 
           onEdgesChange={handleEdgesChange}   
           onConnect={onConnect}       
           nodeTypes={nodeTypes} 
@@ -827,37 +990,36 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
           onSelectionStart={handleSelectionStart}
           onSelectionEnd={handleSelectionEnd}
           // Critical selection settings to fix node selection
-          selectionOnDrag={true}
-          selectNodesOnDrag={true}
+          selectionOnDrag={activeTool === 'navigate'}
+          selectNodesOnDrag={activeTool === 'navigate'}
           selectionMode={SelectionMode.Full}
           elementsSelectable={true}
           nodesDraggable={true}
-          nodesConnectable={true}
+          nodesConnectable={activeTool === 'navigate'}
           nodesFocusable={true}
           edgesFocusable={false}
           edgesUpdatable={true}
           fitView 
           defaultEdgeOptions={defaultEdgeOptions}
           // Use right mouse button (2) for panning
-          panOnDrag={[2]}
+          panOnDrag={activeTool === 'navigate' ? [2] : false}
           multiSelectionKeyCode="Shift"
           deleteKeyCode={null} 
           proOptions={{ hideAttribution: true }}
-          className="drawing-tool-select"
+          className={`drawing-tool-${activeTool}`}
         >
           <Controls />
           <Background />
           <MiniMap />
           {isFormVisible && (
             <NodeForm 
-              key={editingNode ? `edit-${editingNode.id}` : 'add'} 
+              key={editingNode ? `edit-${editingNode.id}` : 'add'}
               initialData={editingNode?.data || null}
               isEditing={!!editingNode}
               onSubmit={(data) => handleFormSubmit(data, !!editingNode, editingNode?.id)}
               onCancel={handleCancelForm}
             />
           )}
-          {/* Context menu removed */}
         </ReactFlow>
       </div>
       <input 
@@ -873,31 +1035,10 @@ function App({ onReturnToLanding }: { onReturnToLanding: () => void }) {
 
 // Wrap App with ReactFlowProvider
 function AppWrapper() {
-  // Always start with the landing page
-  const [showLandingPage, setShowLandingPage] = useState(true);
-
-  const handleAppLaunch = useCallback(() => {
-    setShowLandingPage(false);
-  }, []);
-
-  // Add a function to return to the landing page
-  const handleReturnToLanding = useCallback(() => {
-    setShowLandingPage(true);
-  }, []);
-
-  if (showLandingPage) {
-    return (
-      <div className="landing-page-container">
-        <LandingPage onLaunchApp={handleAppLaunch} />
-      </div>
-    );
-  }
-
   return (
     <div className="app-container">
       <ReactFlowProvider>
-        {/* Pass the return function to App */}
-        <App onReturnToLanding={handleReturnToLanding} />
+        <App />
       </ReactFlowProvider>
     </div>
   );
