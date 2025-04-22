@@ -61,11 +61,12 @@ const DownloadButton: React.FC = () => {
 
   return (
     <button 
-      className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
+      className="w-5 h-5 opacity-0"
       title="Save as PNG"
       onClick={onClick}
+      aria-label="Save as PNG"
     >
-      Save as PNG
+      {/* No content needed - the icon is overlaid in Sidebar.tsx */}
     </button>
   );
 };

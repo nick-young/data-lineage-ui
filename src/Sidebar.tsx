@@ -46,6 +46,70 @@ const ClickableHeader: React.FC<{ title: string; isExpanded: boolean; onClick: (
   </div>
 );
 
+// Icon Button component for tool buttons
+interface IconButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+  isActive?: boolean;
+}
+
+const IconButton: React.FC<IconButtonProps> = ({ icon, label, onClick, isActive = false }) => (
+  <button 
+    onClick={onClick}
+    className={`flex flex-col items-center justify-center p-2 rounded transition-colors duration-150 ease-in-out ${
+      isActive ? 'bg-blue-100 text-blue-800' : 'hover:bg-gray-50 text-gray-700'
+    }`}
+  >
+    <div className="mb-1">{icon}</div>
+    <span className="text-xs font-medium">{label}</span>
+  </button>
+);
+
+// Define SVG icons for buttons
+const Icons = {
+  Navigate: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+    </svg>
+  ),
+  AddNode: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+    </svg>
+  ),
+  Rectangle: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" d="M5 4a2 2 0 00-2 2v8a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H5zm0 2h10v8H5V6z" clipRule="evenodd" />
+    </svg>
+  ),
+  Layout: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 0h1v4h-1V5zm-8 6h6v4H7v-4zm8 0h1v4h-1v-4z" clipRule="evenodd" />
+    </svg>
+  ),
+  Home: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+    </svg>
+  ),
+  PNG: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+    </svg>
+  ),
+  Save: (
+    <svg className="w-5 h-5" stroke="currentColor" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+    </svg>
+  ),
+  Load: (
+    <svg className="w-5 h-5" stroke="currentColor" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+  )
+};
+
 // Main Sidebar Component
 const Sidebar: React.FC<SidebarProps> = (props) => {
   // Destructure props with safe defaults
@@ -69,7 +133,6 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
   
   // State for expanding/collapsing sections
   const [expandedSections, setExpandedSections] = useState({
-    controls: true,
     details: true,
     description: true,
     transformations: true,
@@ -204,65 +267,40 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       {/* Only render content if sidebar is visible */}
       {isSidebarVisible && (
         <>
-          {/* Top Controls Section */}
-          <div className="border-b border-gray-200 p-4">
-            <ClickableHeader 
-              title="Controls"
-              isExpanded={expandedSections.controls} 
-              onClick={() => toggleSection('controls')}
-            />
-            {expandedSections.controls && (
-              <div className="flex flex-wrap gap-2">
-                <button 
-                  onClick={onAddNodeClick} 
-                  className="rounded border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-                >
-                  Add Node
-                </button>
-                <button 
-                  onClick={() => onLayoutNodesClick?.('LR')}
-                  className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                >
-                  Layout Nodes
-                </button>
-              </div>
-            )}
-          </div>
-
           {/* Tools Section */}
           {onToolChange && (
             <div className="border-b border-gray-200 p-4">
               <ClickableHeader 
                 title="Tools"
-                isExpanded={expandedSections.tools || true} 
+                isExpanded={expandedSections.tools} 
                 onClick={() => toggleSection('tools')}
               />
-              {(expandedSections.tools || true) && (
-                <div className="grid grid-cols-2 gap-2">
-                  <button 
-                    onClick={() => onToolChange('navigate')} 
-                    className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${activeTool === 'navigate' ? 'bg-blue-100 border-blue-300 text-blue-800' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Navigate
-                  </button>
-                  <button 
-                    onClick={() => onToolChange('node')} 
-                    className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${activeTool === 'node' ? 'bg-blue-100 border-blue-300 text-blue-800' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Add Node
-                  </button>
-                  <button 
-                    onClick={() => onToolChange('rectangle')} 
-                    className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${activeTool === 'rectangle' ? 'bg-blue-100 border-blue-300 text-blue-800' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Rectangle
-                  </button>
-                  <button 
-                    onClick={() => onToolChange('layout')} 
-                    className={`rounded border px-2 py-1.5 text-xs font-medium transition-colors duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${activeTool === 'layout' ? 'bg-blue-100 border-blue-300 text-blue-800' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'}`}
-                  >
-                    Layout
-                  </button>
+              {expandedSections.tools && (
+                <div className="grid grid-cols-2 gap-3">
+                  <IconButton 
+                    icon={Icons.Navigate}
+                    label="Navigate"
+                    onClick={() => onToolChange('navigate')}
+                    isActive={activeTool === 'navigate'}
+                  />
+                  <IconButton 
+                    icon={Icons.AddNode}
+                    label="Add Node"
+                    onClick={() => onToolChange('node')}
+                    isActive={activeTool === 'node'}
+                  />
+                  <IconButton 
+                    icon={Icons.Rectangle}
+                    label="Add Rectangle"
+                    onClick={() => onToolChange('rectangle')}
+                    isActive={activeTool === 'rectangle'}
+                  />
+                  <IconButton 
+                    icon={Icons.Layout}
+                    label="Layout Nodes"
+                    onClick={() => onToolChange('layout')}
+                    isActive={activeTool === 'layout'}
+                  />
                 </div>
               )}
             </div>
@@ -473,29 +511,40 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
-            <div className="mb-2 flex justify-center gap-2">
+            <div className="mb-2 flex justify-center gap-3">
+              {onReturnToLanding && (
+                <IconButton
+                  icon={Icons.Home}
+                  label="Home"
+                  onClick={onReturnToLanding}
+                />
+              )}
               <button 
-                onClick={onReturnToLanding} 
-                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                title="Return to Landing Page"
+                className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-50 text-gray-700"
+                title="Save as PNG"
               >
-                Home
+                <div className="relative flex items-center justify-center mb-1 w-5 h-5">
+                  {Icons.PNG}
+                  <div className="absolute inset-0">
+                    <DownloadButton />
+                  </div>
+                </div>
+                <span className="text-xs font-medium">PNG</span>
               </button>
-              <DownloadButton />
-              <button 
-                onClick={onSaveFlow} 
-                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                title="Save Flow (JSON)"
-              >
-                Save File
-              </button>
-              <button 
-                onClick={onLoadFlowTrigger} 
-                className="rounded border border-gray-400 bg-white px-3 py-1.5 text-xs font-medium text-gray-800 hover:bg-gray-100 hover:border-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-1 transition duration-150 ease-in-out"
-                title="Load Flow (JSON)"
-               >
-                 Load File
-              </button>
+              {onSaveFlow && (
+                <IconButton
+                  icon={Icons.Save}
+                  label="Save"
+                  onClick={onSaveFlow}
+                />
+              )}
+              {onLoadFlowTrigger && (
+                <IconButton
+                  icon={Icons.Load}
+                  label="Load"
+                  onClick={onLoadFlowTrigger}
+                />
+              )}
             </div>
             <div className="text-center">Data Lineage UI v{version}</div>
           </div>
