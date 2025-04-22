@@ -295,7 +295,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   />
                   <IconButton 
                     icon={Icons.Layout}
-                    label="Layout Nodes"
+                    label="Layout"
                     onClick={() => onToolChange('layout')}
                     isActive={activeTool === 'layout'}
                   />
@@ -306,204 +306,203 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
 
           {/* Scrollable Content Area */}
           <div className="flex-grow overflow-y-auto p-4">
-            {(selectedNodes.length > 0 || selectedEdge) ? (
-              <>
-                {/* Selected Node Details */}
-                {selectedNodes.length === 1 && (
-                  <div className="mb-6">
-                    <ClickableHeader 
-                      title="Node Details"
-                      isExpanded={expandedSections.details} 
-                      onClick={() => toggleSection('details')}
-                    />
-                    {expandedSections.details && (
-                      <div>
-                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{selectedNodes[0].data.label}</span></div>
-                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Entity:</span> <span className="text-right break-words">{selectedNodes[0].data.entity}</span></div>
-                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Type:</span> <span className="text-right break-words">{selectedNodes[0].data.type}</span></div>
-                        {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
-                        {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
-                        {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
-                        
-                        {/* Display node style preview */}
-                        {nodePreviewPalette && (
-                          <div className="mb-1 mt-2 flex items-center justify-between">
-                             <span className="font-medium text-gray-500">Style:</span>
-                             <PalettePreviewNode palette={nodePreviewPalette} />
-                           </div>
-                        )}
-                        
-                        {/* Display other fields if needed */}
-                      </div>
-                    )}
-                    
-                    {/* Node Description Section */}
-                    {selectedNodes[0].data.description && (
-                        <>
-                        <hr className="my-3 border-gray-200" />
-                        <ClickableHeader 
-                            title="Description" 
-                            isExpanded={expandedSections.description}
-                            onClick={() => toggleSection('description')} 
-                        />
-                        {expandedSections.description && (
-                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.description}</p>
-                        )}
-                        </>
-                    )}
-                    
-                    {/* Node Transformations Section */}
-                    {selectedNodes[0].data.transformations && (
-                        <>
-                        <hr className="my-3 border-gray-200" />
-                        <ClickableHeader 
-                            title="Transformations" 
-                            isExpanded={expandedSections.transformations}
-                            onClick={() => toggleSection('transformations')} 
-                        />
-                        {expandedSections.transformations && (
-                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.transformations}</p>
-                        )}
-                        </>
-                    )}
-                    
-                    {/* Node Filters Section */}
-                    {selectedNodes[0].data.filters && (
-                        <>
-                        <hr className="my-3 border-gray-200" />
-                        <ClickableHeader 
-                            title="Filters" 
-                            isExpanded={expandedSections.filters}
-                            onClick={() => toggleSection('filters')} 
-                        />
-                        {expandedSections.filters && (
-                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.filters}</p>
-                        )}
-                        </>
-                    )}
-                    
-                    {/* Input/Output Sections */}
-                    <hr className="my-3 border-gray-200" />
-                    <ClickableHeader title="Inputs" isExpanded={expandedSections.inputs} onClick={() => toggleSection('inputs')} />
-                    {expandedSections.inputs && (
-                      <ul className="ml-0 list-none p-0 text-xs">
-                        {inputs.length > 0 ? inputs.map(node => <li key={node.id} className="mb-1 break-words">{node.data?.label || node.id} ({node.type || 'unknown'})</li>) : <li className="italic text-gray-500">None</li>}
-                      </ul>
-                    )}
-                    <hr className="my-3 border-gray-200" />
-                    <ClickableHeader title="Outputs" isExpanded={expandedSections.outputs} onClick={() => toggleSection('outputs')} />
-                    {expandedSections.outputs && outputs.length > 0 && (
-                      <ul>
-                        {outputs.map(output => (
-                          <li key={output.id} className="mb-1 text-xs">
-                            {output.data?.label || output.id}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </div>
-                )}
-
-                {/* Selected Edge Details */}
-                {selectedEdge && (
-                  <div className="mb-6">
-                    <h3 className="mb-2 text-base font-semibold text-gray-800">Edge Details</h3>
-                    <textarea
-                      value={(selectedEdge.data as any)?.details || ''}
-                      onChange={handleEdgeDetailsChange}
-                      className="h-24 w-full resize-none rounded border border-gray-300 p-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                      placeholder="Enter edge details..."
+            {selectedRectangle ? (
+              // Rectangle Properties - Show this when a rectangle is selected
+              <div className="mb-6">
+                <h3 className="mb-2 text-base font-semibold text-gray-800">Rectangle Properties</h3>
+                <div className="space-y-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Label</label>
+                    <input
+                      type="text"
+                      value={selectedRectangle.label || ''}
+                      onChange={(e) => handleRectangleUpdate('label', e.target.value)}
+                      className="w-full p-1 border rounded"
                     />
                   </div>
-                )}
-
-                {/* Rectangle Properties */}
-                {selectedRectangle && (
-                  <div className="mb-6">
-                    <h3 className="mb-2 text-base font-semibold text-gray-800">Rectangle Properties</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Label</label>
-                        <input
-                          type="text"
-                          value={selectedRectangle.label || ''}
-                          onChange={(e) => handleRectangleUpdate('label', e.target.value)}
-                          className="w-full p-1 border rounded"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
-                          <input
-                            type="number"
-                            value={selectedRectangle.width || 0}
-                            onChange={(e) => handleRectangleUpdate('width', parseFloat(e.target.value))}
-                            className="w-full p-1 border rounded"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-500">Height</label>
-                          <input
-                            type="number"
-                            value={selectedRectangle.height || 0}
-                            onChange={(e) => handleRectangleUpdate('height', parseFloat(e.target.value))}
-                            className="w-full p-1 border rounded"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Background Color</label>
-                        <input
-                          type="color"
-                          value={selectedRectangle.bgColor || '#ffffff'}
-                          onChange={(e) => handleRectangleUpdate('bgColor', e.target.value)}
-                          className="w-full p-1 border rounded"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="mb-1 block text-xs font-medium text-gray-500">Border Color</label>
-                        <input
-                          type="color"
-                          value={selectedRectangle.borderColor || '#000000'}
-                          onChange={(e) => handleRectangleUpdate('borderColor', e.target.value)}
-                          className="w-full p-1 border rounded"
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2">
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-500">Border Width</label>
-                          <input
-                            type="number"
-                            value={selectedRectangle.borderWidth || 1}
-                            onChange={(e) => handleRectangleUpdate('borderWidth', parseFloat(e.target.value))}
-                            className="w-full p-1 border rounded"
-                          />
-                        </div>
-                        <div>
-                          <label className="mb-1 block text-xs font-medium text-gray-500">Border Style</label>
-                          <select
-                            value={selectedRectangle.borderStyle || 'solid'}
-                            onChange={(e) => handleRectangleUpdate('borderStyle', e.target.value)}
-                            className="w-full p-1 border rounded"
-                          >
-                            <option value="solid">Solid</option>
-                            <option value="dashed">Dashed</option>
-                            <option value="dotted">Dotted</option>
-                          </select>
-                        </div>
-                      </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
+                      <input
+                        type="number"
+                        value={selectedRectangle.width || 0}
+                        onChange={(e) => handleRectangleUpdate('width', parseFloat(e.target.value))}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Height</label>
+                      <input
+                        type="number"
+                        value={selectedRectangle.height || 0}
+                        onChange={(e) => handleRectangleUpdate('height', parseFloat(e.target.value))}
+                        className="w-full p-1 border rounded"
+                      />
                     </div>
                   </div>
-                )}
-              </>
-            ) : (
-              <div className="text-center text-sm text-gray-500">
-                Select a node or edge to view its details.
+                  
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Background Color</label>
+                    <input
+                      type="color"
+                      value={selectedRectangle.bgColor || '#ffffff'}
+                      onChange={(e) => handleRectangleUpdate('bgColor', e.target.value)}
+                      className="w-full p-1 border rounded"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Border Color</label>
+                    <input
+                      type="color"
+                      value={selectedRectangle.borderColor || '#000000'}
+                      onChange={(e) => handleRectangleUpdate('borderColor', e.target.value)}
+                      className="w-full p-1 border rounded"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Border Width</label>
+                      <input
+                        type="number"
+                        value={selectedRectangle.borderWidth || 1}
+                        onChange={(e) => handleRectangleUpdate('borderWidth', parseFloat(e.target.value))}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Border Style</label>
+                      <select
+                        value={selectedRectangle.borderStyle || 'solid'}
+                        onChange={(e) => handleRectangleUpdate('borderStyle', e.target.value)}
+                        className="w-full p-1 border rounded"
+                      >
+                        <option value="solid">Solid</option>
+                        <option value="dashed">Dashed</option>
+                        <option value="dotted">Dotted</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
               </div>
+            ) : (
+              // Show node/edge details only when no rectangle is selected
+              (selectedNodes.length > 0 || selectedEdge) ? (
+                <>
+                  {/* Selected Node Details */}
+                  {selectedNodes.length === 1 && (
+                    <div className="mb-6">
+                      <ClickableHeader 
+                        title="Node Details"
+                        isExpanded={expandedSections.details} 
+                        onClick={() => toggleSection('details')}
+                      />
+                      {expandedSections.details && (
+                        <div>
+                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{selectedNodes[0].data.label}</span></div>
+                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Entity:</span> <span className="text-right break-words">{selectedNodes[0].data.entity}</span></div>
+                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Type:</span> <span className="text-right break-words">{selectedNodes[0].data.type}</span></div>
+                          {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
+                          {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
+                          {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
+                          
+                          {/* Display node style preview */}
+                          {nodePreviewPalette && (
+                            <div className="mb-1 mt-2 flex items-center justify-between">
+                              <span className="font-medium text-gray-500">Style:</span>
+                              <PalettePreviewNode palette={nodePreviewPalette} />
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {/* Node Description Section */}
+                      {selectedNodes[0].data.description && (
+                          <>
+                          <hr className="my-3 border-gray-200" />
+                          <ClickableHeader 
+                              title="Description" 
+                              isExpanded={expandedSections.description}
+                              onClick={() => toggleSection('description')} 
+                          />
+                          {expandedSections.description && (
+                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.description}</p>
+                          )}
+                          </>
+                      )}
+                      
+                      {/* Node Transformations Section */}
+                      {selectedNodes[0].data.transformations && (
+                          <>
+                          <hr className="my-3 border-gray-200" />
+                          <ClickableHeader 
+                              title="Transformations" 
+                              isExpanded={expandedSections.transformations}
+                              onClick={() => toggleSection('transformations')} 
+                          />
+                          {expandedSections.transformations && (
+                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.transformations}</p>
+                          )}
+                          </>
+                      )}
+                      
+                      {/* Node Filters Section */}
+                      {selectedNodes[0].data.filters && (
+                          <>
+                          <hr className="my-3 border-gray-200" />
+                          <ClickableHeader 
+                              title="Filters" 
+                              isExpanded={expandedSections.filters}
+                              onClick={() => toggleSection('filters')} 
+                          />
+                          {expandedSections.filters && (
+                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.filters}</p>
+                          )}
+                          </>
+                      )}
+                      
+                      {/* Input/Output Sections */}
+                      <hr className="my-3 border-gray-200" />
+                      <ClickableHeader title="Inputs" isExpanded={expandedSections.inputs} onClick={() => toggleSection('inputs')} />
+                      {expandedSections.inputs && (
+                        <ul className="ml-0 list-none p-0 text-xs">
+                          {inputs.length > 0 ? inputs.map(node => <li key={node.id} className="mb-1 break-words">{node.data?.label || node.id} ({node.type || 'unknown'})</li>) : <li className="italic text-gray-500">None</li>}
+                        </ul>
+                      )}
+                      <hr className="my-3 border-gray-200" />
+                      <ClickableHeader title="Outputs" isExpanded={expandedSections.outputs} onClick={() => toggleSection('outputs')} />
+                      {expandedSections.outputs && outputs.length > 0 && (
+                        <ul>
+                          {outputs.map(output => (
+                            <li key={output.id} className="mb-1 text-xs">
+                              {output.data?.label || output.id}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Selected Edge Details */}
+                  {selectedEdge && (
+                    <div className="mb-6">
+                      <h3 className="mb-2 text-base font-semibold text-gray-800">Edge Details</h3>
+                      <textarea
+                        value={(selectedEdge.data as any)?.details || ''}
+                        onChange={handleEdgeDetailsChange}
+                        className="h-24 w-full resize-none rounded border border-gray-300 p-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                        placeholder="Enter edge details..."
+                      />
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center text-sm text-gray-500">
+                  Select a node or edge to view its details.
+                </div>
+              )
             )}
           </div>
 
