@@ -455,17 +455,31 @@ function App() {
     }
     
     try {
-      const layoutedNodePositions = getLayoutedElements(nodes, edges, direction);
+      // Filter out shapes and text annotations from layout processing
+      const nodesToLayout = nodes.filter(node => 
+        node.type !== 'shape' && node.type !== 'textAnnotation'
+      );
+      
+      if (nodesToLayout.length === 0) {
+        // No nodes to layout after filtering
+        return;
+      }
+      
+      const layoutedNodePositions = getLayoutedElements(nodesToLayout, edges, direction);
       
       const positionMap = new Map(layoutedNodePositions.map(item => [item.id, item.position]));
   
       setNodes(currentNodes => {
         const newNodes = currentNodes.map(node => {
+          // Skip layout for shape and text annotation nodes
+          if (node.type === 'shape' || node.type === 'textAnnotation') {
+            return node;
+          }
+          
           const newPosition = positionMap.get(node.id);
           if (newPosition && (node.position.x !== newPosition.x || node.position.y !== newPosition.y)) {
             // Preserve zIndex when updating position - set default values if not present
-            const zIndex = node.zIndex !== undefined ? node.zIndex : 
-                         (node.type === 'shape' ? -1 : 0);
+            const zIndex = node.zIndex !== undefined ? node.zIndex : 0;
             return { 
               ...node, 
               position: newPosition,

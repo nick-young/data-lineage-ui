@@ -103,8 +103,8 @@ export const entityConfig: EntityConfig[] = [
     name: 'Stream Processing',
     types: [
       {
-        name: 'Stream Processing Framework', 
-        iconUrl: resolveIconUrl('assets/om-icons/service-icon-flink.png'),
+        name: 'SPF', 
+        iconUrl: resolveIconUrl('assets/om-icons/service-icon-spf.png'),
         // No specific sub-types defined for generic API
       },
       {
