@@ -113,6 +113,8 @@ const TextAnnotationNode: React.FC<NodeProps<TextAnnotationData>> = ({
           isVisible={selected}
           lineClassName="border-blue-400"
           handleClassName="h-3 w-3 border-2 border-blue-400 bg-white"
+          handleStyle={{ opacity: 1 }}
+          lineStyle={{ opacity: 1, borderWidth: 2 }}
         />
       )}
       <div 
@@ -125,7 +127,8 @@ const TextAnnotationNode: React.FC<NodeProps<TextAnnotationData>> = ({
           borderRadius: '0',
           background: data.bgColor || 'transparent',
           position: 'relative',
-          outline: selected ? '1px dashed #1a192b' : 'none',
+          outline: selected ? '2px dashed #1a192b' : 'none',
+          outlineOffset: '1px',
           boxShadow: 'none',
         }}
       >

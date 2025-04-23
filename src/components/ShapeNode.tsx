@@ -133,6 +133,8 @@ const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({
         onResizeEnd={onResizeEnd}
         lineClassName="border-blue-400"
         handleClassName="h-3 w-3 border-2 border-blue-400 bg-white"
+        handleStyle={{ opacity: 1 }}
+        lineStyle={{ opacity: 1, borderWidth: 2 }}
       />
       <div 
         style={{ 
@@ -142,6 +144,8 @@ const ShapeNode: React.FC<NodeProps<ShapeNodeData>> = ({
           border: `${data.borderWidth}px ${data.borderStyle} ${data.borderColor}`,
           borderRadius: '4px',
           position: 'relative',
+          outline: selected ? '2px solid rgba(59, 130, 246, 0.5)' : 'none',
+          outlineOffset: '1px',
         }}
       >
         {/* Top handle */}
