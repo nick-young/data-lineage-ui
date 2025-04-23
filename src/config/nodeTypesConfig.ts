@@ -245,7 +245,8 @@ export const entityConfig: EntityConfig[] = [
       { name: 'Talend', iconUrl: resolveIconUrl('assets/om-icons/service-icon-talend.png'), subTypes: [] },
       { name: 'Trino', iconUrl: resolveIconUrl('assets/om-icons/service-icon-trino.png'), subTypes: [] },
       { name: 'Vertica', iconUrl: resolveIconUrl('assets/om-icons/service-icon-vertica.png'), subTypes: [] },
-    ],
+      { name: 'Website', iconUrl: resolveIconUrl('assets/om-icons/service-icon-website.png'), subTypes: [] },
+    ]
   },
 ];
 

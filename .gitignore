@@ -117,3 +117,6 @@ out
 # Vite build output
 dist/
 .vite/
+
+
+.cursor/   

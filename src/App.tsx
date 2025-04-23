@@ -11,6 +11,7 @@ import type { EdgeLabelData } from './types';
 import ShapeNode from './components/ShapeNode';
 import { RectangleData } from './components/CanvasRectangle';
 import { ToolType } from './components/ToolType';
+import TextAnnotationNode, { TextAnnotationData } from './TextAnnotationNode';
 
 const LOCAL_STORAGE_KEY_NODES = 'reactFlowNodes';
 const LOCAL_STORAGE_KEY_EDGES = 'reactFlowEdges';
@@ -121,6 +122,7 @@ const nodeTypes = {
   custom: CustomNode,
   edgeLabel: EdgeLabelNode, // Keep edge label type
   shape: ShapeNode,
+  textAnnotation: TextAnnotationNode,
 };
 
 // Adjust ID counter based on loaded nodes
@@ -256,6 +258,39 @@ function App() {
       ...selectedShapeNode.data
     } : null;
   }, [nodes]);
+  
+  // --- Derive selected text annotation state ---
+  const selectedTextAnnotation = useMemo(() => {
+    const selectedTextNode = nodes.find(n => n.selected && n.type === 'textAnnotation');
+    return selectedTextNode ? {
+      id: selectedTextNode.id,
+      ...selectedTextNode.data
+    } : null;
+  }, [nodes]);
+  
+  // --- Handler for text annotation updates ---
+  const handleTextUpdate = useCallback((property: string, value: any) => {
+    if (!selectedTextAnnotation || !selectedTextAnnotation.id) return;
+    
+    console.log(`Updating text annotation property: ${property} to value: ${value} for node: ${selectedTextAnnotation.id}`);
+    
+    // Update the node in the nodes array
+    setNodes(prevNodes => 
+      prevNodes.map(node => {
+        if (node.id === selectedTextAnnotation.id && node.type === 'textAnnotation') {
+          // Update the specific property in node data
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              [property]: value
+            }
+          };
+        }
+        return node;
+      })
+    );
+  }, [selectedTextAnnotation, setNodes]);
 
   // --- useEffects for saving, selection sync ---
   useEffect(() => {
@@ -490,6 +525,50 @@ function App() {
     
   }, [reactFlowInstance, setNodes, reactFlowWrapper]);
 
+  // --- Add Text Annotation Handler ---
+  const handleAddText = useCallback(() => {
+    // Get the current viewport to position the text annotation at the center
+    const { x, y, zoom } = reactFlowInstance.getViewport();
+    
+    // Get viewport dimensions
+    const viewportWidth = reactFlowWrapper.current?.clientWidth || 800;
+    const viewportHeight = reactFlowWrapper.current?.clientHeight || 600;
+    
+    // Calculate the center point in flow coordinates
+    const centerX = (viewportWidth / 2 - x) / zoom;
+    const centerY = (viewportHeight / 2 - y) / zoom;
+    
+    // Create a new text annotation node with default properties
+    const newNode: Node = {
+      id: `text_${idCounter++}`,
+      type: 'textAnnotation',
+      position: { x: centerX - 75, y: centerY - 40 }, // Center the text annotation
+      data: {
+        text: 'Text Annotation',
+        width: 150,
+        height: 80,
+        fontSize: 14,
+        fontWeight: 'normal',
+        fontStyle: 'normal',
+        textDecoration: 'none',
+        fontColor: '#000000',
+        bgColor: 'transparent',
+        textAlign: 'left',
+        verticalAlign: 'top',
+        label: '', // Required by NodeData
+        entity: '', // Required by NodeData
+        type: 'text' // Required by NodeData
+      },
+      selected: true,
+      draggable: true,
+      selectable: true
+    };
+    
+    // Add the text annotation to nodes
+    setNodes(nodes => [...nodes, newNode]);
+    
+  }, [reactFlowInstance, setNodes, reactFlowWrapper]);
+
   // --- Re-add onConnect Handler ---
   const onConnect = useCallback(
     (params: Edge | Connection) => 
@@ -526,6 +605,11 @@ function App() {
       // Handle deleting selected rectangle
       if (selectedRectangle && 'id' in selectedRectangle) {
         setNodes(nds => nds.filter(n => n.id !== selectedRectangle.id));
+      }
+      
+      // Handle deleting selected text annotation
+      if (selectedTextAnnotation && 'id' in selectedTextAnnotation) {
+        setNodes(nds => nds.filter(n => n.id !== selectedTextAnnotation.id));
       }
     }
     if ((event.metaKey || event.ctrlKey) && event.key === 'c') {
@@ -939,12 +1023,14 @@ function App() {
         setActiveTool('navigate'); 
         break;
       case 'text':
-        // Future implementation
+        handleAddText();
+        // Return to navigate mode after adding a text annotation
+        setActiveTool('navigate');
         break;
       default:
         break;
     }
-  }, [handleAddNode, handleLayoutNodes, handleAddRectangle]);
+  }, [handleAddNode, handleLayoutNodes, handleAddRectangle, handleAddText]);
 
   return (
     // Main container using Flexbox and Tailwind
@@ -962,8 +1048,10 @@ function App() {
         onLoadFlowTrigger={handleLoadFlowTrigger}
         onLayoutNodesClick={handleLayoutNodes}
         selectedRectangle={selectedRectangle as RectangleData | null}
+        selectedTextAnnotation={selectedTextAnnotation as TextAnnotationData | null}
         activeTool={activeTool}
         onToolChange={handleToolChange}
+        handleTextUpdate={handleTextUpdate}
       />
       {/* Toggle button using Tailwind classes */}
       <button 

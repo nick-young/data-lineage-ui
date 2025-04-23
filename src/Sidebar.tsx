@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { Node, Edge } from 'reactflow';
 import { NodeData, EdgeData } from './App';
 import { RectangleData } from './components/CanvasRectangle';
+import { TextAnnotationData } from './TextAnnotationNode';
 import { ToolType } from './components/ToolType';
 import { version } from '../package.json'; // Corrected import path
 // Import palette helpers and preview component
@@ -28,9 +29,11 @@ export interface SidebarProps {
   onLayoutNodesClick?: (direction: string) => void;
   onReturnToLanding?: () => void;
   selectedRectangle?: RectangleData | null;
+  selectedTextAnnotation?: TextAnnotationData | null;
   activeTool?: ToolType;
   onToolChange?: (tool: ToolType) => void;
   setNodes?: React.Dispatch<React.SetStateAction<Node<NodeData>[]>>;
+  handleTextUpdate?: (property: string, value: any) => void;
 }
 
 // --- Constants ---
@@ -69,13 +72,13 @@ const IconButton: React.FC<IconButtonProps> = ({ icon, label, onClick, isActive 
 // Define SVG icons for buttons
 const Icons = {
   Navigate: (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-      <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
+      <path d="M402-40q-30 0-56-13.5T303-92L48-465l24-23q19-19 45-22t47 12l116 81v-383q0-17 11.5-28.5T320-840q17 0 28.5 11.5T360-800v537L212-367l157 229q5 8 14 13t19 5h278q33 0 56.5-23.5T760-200v-560q0-17 11.5-28.5T800-800q17 0 28.5 11.5T840-760v560q0 66-47 113T680-40H402Zm38-440v-400q0-17 11.5-28.5T480-920q17 0 28.5 11.5T520-880v400h-80Zm160 0v-360q0-17 11.5-28.5T640-880q17 0 28.5 11.5T680-840v360h-80ZM486-300Z" />
     </svg>
   ),
   AddNode: (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-      <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
+      <path d="M200-120q-33 0-56.5-23.5T120-200v-560q0-33 23.5-56.5T200-840h360v80H200v560h560v-360h80v360q0 33-23.5 56.5T760-120H200Zm120-160v-80h320v80H320Zm0-120v-80h320v80H320Zm0-120v-80h320v80H320Zm360-80v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z" />
     </svg>
   ),
   Rectangle: (
@@ -83,9 +86,14 @@ const Icons = {
       <path fillRule="evenodd" d="M5 4a2 2 0 00-2 2v8a2 2 0 002 2h10a2 2 0 002-2V6a2 2 0 00-2-2H5zm0 2h10v8H5V6z" clipRule="evenodd" />
     </svg>
   ),
+  Text: (
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
+      <path d="M280-160v-520H80v-120h520v120H400v520H280Zm360 0v-320H520v-120h360v120H760v320H640Z" />
+    </svg>
+  ),
   Layout: (
-    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm3 2h6v4H7V5zm8 0h1v4h-1V5zm-8 6h6v4H7v-4zm8 0h1v4h-1v-4z" clipRule="evenodd" />
+    <svg className="w-5 h-5" fill="currentColor" viewBox="0 -960 960 960" xmlns="http://www.w3.org/2000/svg">
+      <path d="M720-140 560-300l160-160 56 56-63 64h167v80H713l63 64-56 56Zm-560-20q-33 0-56.5-23.5T80-240v-120q0-33 23.5-56.5T160-440h240q33 0 56.5 23.5T480-360v120q0 33-23.5 56.5T400-160H160Zm0-80h240v-120H160v120Zm80-260-56-56 63-64H80v-80h167l-63-64 56-56 160 160-160 160Zm320-20q-33 0-56.5-23.5T480-600v-120q0-33 23.5-56.5T560-800h240q33 0 56.5 23.5T880-720v120q0-33-23.5 56.5T800-520H560Zm0-80h240v-120H560v120ZM400-240v-120 120Zm160-360v-120 120Z" />
     </svg>
   ),
   Home: (
@@ -124,9 +132,11 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     onLoadFlowTrigger,
     onReturnToLanding,
     selectedRectangle = null,
+    selectedTextAnnotation,
     activeTool = 'navigate',
     onToolChange,
     setNodes,
+    handleTextUpdate,
   } = props;
   
   // State for expanding/collapsing sections
@@ -140,7 +150,7 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
     connections: true,
     tools: true,
   });
-  
+
   // Toggle section visibility
   const toggleSection = useCallback((sectionName: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [sectionName]: !prev[sectionName] }));
@@ -238,36 +248,36 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       if (selectedNode.palette) {
         return getPaletteByName(selectedNode.palette);
       } else if (selectedNode.bgColor || selectedNode.borderColor) {
-        // Create a temporary custom palette for preview
-        // Basic contrast check for default text color (can be improved)
-        const isDarkBg = (bgColor: string): boolean => {
-          try {
-            const color = bgColor.startsWith('#') ? bgColor.substring(1) : bgColor;
-            const r = parseInt(color.substring(0, 2), 16);
-            const g = parseInt(color.substring(2, 4), 16);
-            const b = parseInt(color.substring(4, 6), 16);
-            // Formula for perceived brightness (YIQ)
-            const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-            return yiq < 128; // Threshold for darkness
-          } catch (e) {
-            return false; // Default to light if parsing fails
-          }
-        };
-        const defaultBg = nodePalettes[0].bgColor;
-        const defaultBorder = nodePalettes[0].borderColor;
-        const defaultText = nodePalettes[0].textColor;
+      // Create a temporary custom palette for preview
+      // Basic contrast check for default text color (can be improved)
+      const isDarkBg = (bgColor: string): boolean => {
+        try {
+          const color = bgColor.startsWith('#') ? bgColor.substring(1) : bgColor;
+          const r = parseInt(color.substring(0, 2), 16);
+          const g = parseInt(color.substring(2, 4), 16);
+          const b = parseInt(color.substring(4, 6), 16);
+          // Formula for perceived brightness (YIQ)
+          const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+          return yiq < 128; // Threshold for darkness
+        } catch (e) {
+          return false; // Default to light if parsing fails
+        }
+      };
+      const defaultBg = nodePalettes[0].bgColor;
+      const defaultBorder = nodePalettes[0].borderColor;
+      const defaultText = nodePalettes[0].textColor;
         const bgColor = selectedNode.bgColor || defaultBg;
-        
-        return {
-          name: "Custom",
-          bgColor: bgColor,
+      
+      return {
+        name: "Custom",
+        bgColor: bgColor,
           borderColor: selectedNode.borderColor || defaultBorder,
-          textColor: isDarkBg(bgColor) ? '#FFFFFF' : defaultText,
-        };
-      } else {
-        // Fallback to the default palette if no style info
-        return nodePalettes[0];
-      }
+        textColor: isDarkBg(bgColor) ? '#FFFFFF' : defaultText,
+      };
+    } else {
+      // Fallback to the default palette if no style info
+      return nodePalettes[0];
+    }
     }
     return undefined;
   }, [selectedNodes, nodes, edges]);
@@ -277,27 +287,10 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
       {/* Only render content if sidebar is visible */}
       {isSidebarVisible && (
         <>
-          {/* Header with Home button */}
-          {onReturnToLanding && (
-            <div className="border-b border-gray-200 p-3 flex justify-between items-center bg-gray-50">
-              <button
-                onClick={onReturnToLanding}
-                className="flex items-center text-gray-800 hover:text-blue-600 transition-colors duration-150 ease-in-out focus:outline-none"
-                title="Return to Home"
-              >
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-                </svg>
-                <span className="font-medium">Home</span>
-              </button>
-              <span className="text-xs text-gray-500">v{version}</span>
-            </div>
-          )}
-          
           {/* Tools Section */}
           {onToolChange && (
-            <div className="border-b border-gray-200 p-4">
-              <ClickableHeader 
+          <div className="border-b border-gray-200 p-4">
+            <ClickableHeader 
                 title="Tools"
                 isExpanded={expandedSections.tools} 
                 onClick={() => toggleSection('tools')}
@@ -323,14 +316,20 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                     isActive={activeTool === 'rectangle'}
                   />
                   <IconButton 
+                    icon={Icons.Text}
+                    label="Add Text"
+                    onClick={() => onToolChange('text')}
+                    isActive={activeTool === 'text'}
+                  />
+                  <IconButton 
                     icon={Icons.Layout}
-                    label="Layout"
+                    label="Layout Nodes"
                     onClick={() => onToolChange('layout')}
                     isActive={activeTool === 'layout'}
                   />
-                </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
           )}
 
           {/* Scrollable Content Area */}
@@ -536,92 +535,286 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                   </div>
                 </div>
               </div>
-            ) : (
-              // Show node/edge details only when no rectangle is selected
-              (selectedNodes.length > 0 || selectedEdge) ? (
-                <>
-                  {/* Selected Node Details */}
-                  {selectedNodes.length === 1 && (
-                    <div className="mb-6">
-                      <ClickableHeader 
-                        title="Node Details"
-                        isExpanded={expandedSections.details} 
-                        onClick={() => toggleSection('details')}
-                      />
-                      {expandedSections.details && (
-                        <div>
-                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{selectedNodes[0].data.label}</span></div>
-                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Entity:</span> <span className="text-right break-words">{selectedNodes[0].data.entity}</span></div>
-                          <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Type:</span> <span className="text-right break-words">{selectedNodes[0].data.type}</span></div>
-                          {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
-                          {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
-                          {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
-                          
-                          {/* Display node style preview */}
-                          {nodePreviewPalette && (
-                            <div className="mb-1 mt-2 flex items-center justify-between">
-                              <span className="font-medium text-gray-500">Style:</span>
-                              <PalettePreviewNode palette={nodePreviewPalette} />
-                            </div>
-                          )}
+            ) : selectedTextAnnotation ? (
+              // Text Annotation Properties - Show when a text annotation is selected
+              <div className="mb-6">
+                <h3 className="mb-2 text-base font-semibold text-gray-800">Text Properties</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Content</label>
+                    <textarea
+                      value={selectedTextAnnotation.text || ''}
+                      onChange={(e) => {
+                        if (handleTextUpdate) {
+                          handleTextUpdate('text', e.target.value);
+                        }
+                      }}
+                      className="w-full p-2 border rounded min-h-[100px] resize-none"
+                      placeholder="Enter text..."
+                    />
+                  </div>
+                  
+                  {/* Text Formatting Controls */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Text Format</label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('fontWeight', selectedTextAnnotation.fontWeight === 'bold' ? 'normal' : 'bold');
+                          }
+                        }}
+                        className={`flex-1 p-1 border rounded ${selectedTextAnnotation.fontWeight === 'bold' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Bold"
+                      >
+                        <span className="font-bold">B</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('fontStyle', selectedTextAnnotation.fontStyle === 'italic' ? 'normal' : 'italic');
+                          }
+                        }}
+                        className={`flex-1 p-1 border rounded ${selectedTextAnnotation.fontStyle === 'italic' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Italic"
+                      >
+                        <span className="italic">I</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('textDecoration', selectedTextAnnotation.textDecoration === 'underline' ? 'none' : 'underline');
+                          }
+                        }}
+                        className={`flex-1 p-1 border rounded ${selectedTextAnnotation.textDecoration === 'underline' ? 'bg-blue-100 border-blue-400' : ''}`}
+                        title="Underline"
+                      >
+                        <span className="underline">U</span>
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Font Size and Font Color Controls */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Font Size</label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={selectedTextAnnotation.fontSize || 14}
+                          onChange={(e) => {
+                            if (handleTextUpdate) {
+                              handleTextUpdate('fontSize', parseFloat(e.target.value));
+                            }
+                          }}
+                          className="w-full p-1 pr-8 border rounded"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-gray-400">
+                          px
                         </div>
-                      )}
-                      
-                      {/* Node Description Section */}
-                      {selectedNodes[0].data.description && (
-                          <>
-                          <hr className="my-3 border-gray-200" />
-                          <ClickableHeader 
-                              title="Description" 
-                              isExpanded={expandedSections.description}
-                              onClick={() => toggleSection('description')} 
-                          />
-                          {expandedSections.description && (
-                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.description}</p>
-                          )}
-                          </>
-                      )}
-                      
-                      {/* Node Transformations Section */}
-                      {selectedNodes[0].data.transformations && (
-                          <>
-                          <hr className="my-3 border-gray-200" />
-                          <ClickableHeader 
-                              title="Transformations" 
-                              isExpanded={expandedSections.transformations}
-                              onClick={() => toggleSection('transformations')} 
-                          />
-                          {expandedSections.transformations && (
-                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.transformations}</p>
-                          )}
-                          </>
-                      )}
-                      
-                      {/* Node Filters Section */}
-                      {selectedNodes[0].data.filters && (
-                          <>
-                          <hr className="my-3 border-gray-200" />
-                          <ClickableHeader 
-                              title="Filters" 
-                              isExpanded={expandedSections.filters}
-                              onClick={() => toggleSection('filters')} 
-                          />
-                          {expandedSections.filters && (
-                              <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.filters}</p>
-                          )}
-                          </>
-                      )}
-                      
-                      {/* Input/Output Sections */}
-                      <hr className="my-3 border-gray-200" />
-                      <ClickableHeader title="Inputs" isExpanded={expandedSections.inputs} onClick={() => toggleSection('inputs')} />
-                      {expandedSections.inputs && (
-                        <ul className="ml-0 list-none p-0 text-xs">
+                      </div>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Font Color</label>
+                      <input
+                        type="color"
+                        value={selectedTextAnnotation.fontColor || '#000000'}
+                        onChange={(e) => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('fontColor', e.target.value);
+                          }
+                        }}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Text Alignment */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Text Alignment</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Horizontal</label>
+                        <select
+                          value={selectedTextAnnotation.textAlign || 'left'}
+                          onChange={(e) => {
+                            if (handleTextUpdate) {
+                              handleTextUpdate('textAlign', e.target.value);
+                            }
+                          }}
+                          className="w-full p-1 border rounded"
+                        >
+                          <option value="left">Left</option>
+                          <option value="center">Center</option>
+                          <option value="right">Right</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-gray-500">Vertical</label>
+                        <select
+                          value={selectedTextAnnotation.verticalAlign || 'top'}
+                          onChange={(e) => {
+                            if (handleTextUpdate) {
+                              handleTextUpdate('verticalAlign', e.target.value);
+                            }
+                          }}
+                          className="w-full p-1 border rounded"
+                        >
+                          <option value="top">Top</option>
+                          <option value="middle">Middle</option>
+                          <option value="bottom">Bottom</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Background Color Control */}
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Background Color</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={selectedTextAnnotation.bgColor === 'transparent' ? '#ffffff' : selectedTextAnnotation.bgColor || '#ffffff'}
+                        onChange={(e) => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('bgColor', e.target.value);
+                          }
+                        }}
+                        className="flex-1 p-1 border rounded"
+                      />
+                      <button
+                        onClick={() => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('bgColor', 'transparent');
+                          }
+                        }}
+                        className={`px-2 py-1 border rounded text-xs ${selectedTextAnnotation.bgColor === 'transparent' ? 'bg-blue-100 border-blue-400' : ''}`}
+                      >
+                        Transparent
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Width and Height Controls */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Width</label>
+                      <input
+                        type="number"
+                        value={selectedTextAnnotation.width || 150}
+                        onChange={(e) => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('width', parseFloat(e.target.value));
+                          }
+                        }}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-gray-500">Height</label>
+                      <input
+                        type="number"
+                        value={selectedTextAnnotation.height || 80}
+                        onChange={(e) => {
+                          if (handleTextUpdate) {
+                            handleTextUpdate('height', parseFloat(e.target.value));
+                          }
+                        }}
+                        className="w-full p-1 border rounded"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Show node/edge details only when no rectangle or text annotation is selected
+              (selectedNodes.length > 0 || selectedEdge) ? (
+              <>
+                {/* Selected Node Details */}
+                {selectedNodes.length === 1 && (
+                  <div className="mb-6">
+                    <ClickableHeader 
+                      title="Node Details"
+                      isExpanded={expandedSections.details} 
+                      onClick={() => toggleSection('details')}
+                    />
+                    {expandedSections.details && (
+                      <div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Label:</span> <span className="text-right break-words">{selectedNodes[0].data.label}</span></div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Entity:</span> <span className="text-right break-words">{selectedNodes[0].data.entity}</span></div>
+                        <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Type:</span> <span className="text-right break-words">{selectedNodes[0].data.type}</span></div>
+                        {selectedNodes[0].data.subType && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">SubType:</span> <span className="text-right break-words">{selectedNodes[0].data.subType}</span></div>}
+                        {selectedNodes[0].data.domain && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Domain:</span> <span className="text-right break-words">{selectedNodes[0].data.domain}</span></div>}
+                        {selectedNodes[0].data.owner && <div className="mb-1 flex justify-between"><span className="font-medium text-gray-500">Owner:</span> <span className="text-right break-words">{selectedNodes[0].data.owner}</span></div>}
+                        
+                        {/* Display node style preview */}
+                        {nodePreviewPalette && (
+                          <div className="mb-1 mt-2 flex items-center justify-between">
+                             <span className="font-medium text-gray-500">Style:</span>
+                             <PalettePreviewNode palette={nodePreviewPalette} />
+                           </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Node Description Section */}
+                    {selectedNodes[0].data.description && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Description" 
+                            isExpanded={expandedSections.description}
+                            onClick={() => toggleSection('description')} 
+                        />
+                        {expandedSections.description && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.description}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Node Transformations Section */}
+                    {selectedNodes[0].data.transformations && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Transformations" 
+                            isExpanded={expandedSections.transformations}
+                            onClick={() => toggleSection('transformations')} 
+                        />
+                        {expandedSections.transformations && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.transformations}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Node Filters Section */}
+                    {selectedNodes[0].data.filters && (
+                        <>
+                        <hr className="my-3 border-gray-200" />
+                        <ClickableHeader 
+                            title="Filters" 
+                            isExpanded={expandedSections.filters}
+                            onClick={() => toggleSection('filters')} 
+                        />
+                        {expandedSections.filters && (
+                            <p className="whitespace-pre-wrap text-xs text-gray-600">{selectedNodes[0].data.filters}</p>
+                        )}
+                        </>
+                    )}
+                    
+                    {/* Input/Output Sections */}
+                    <hr className="my-3 border-gray-200" />
+                    <ClickableHeader title="Inputs" isExpanded={expandedSections.inputs} onClick={() => toggleSection('inputs')} />
+                    {expandedSections.inputs && (
+                      <ul className="ml-0 list-none p-0 text-xs">
                           {inputs.length > 0 ? inputs.map(node => <li key={node.id} className="mb-1 break-words">{node.data?.label || node.id} ({node.type || 'unknown'})</li>) : <li className="italic text-gray-500">None</li>}
-                        </ul>
-                      )}
-                      <hr className="my-3 border-gray-200" />
-                      <ClickableHeader title="Outputs" isExpanded={expandedSections.outputs} onClick={() => toggleSection('outputs')} />
+                      </ul>
+                    )}
+                    <hr className="my-3 border-gray-200" />
+                    <ClickableHeader title="Outputs" isExpanded={expandedSections.outputs} onClick={() => toggleSection('outputs')} />
                       {expandedSections.outputs && outputs.length > 0 && (
                         <ul>
                           {outputs.map(output => (
@@ -629,25 +822,25 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
                               {output.data?.label || output.id}
                             </li>
                           ))}
-                        </ul>
-                      )}
-                    </div>
-                  )}
+                      </ul>
+                    )}
+                  </div>
+                )}
 
-                  {/* Selected Edge Details */}
-                  {selectedEdge && (
-                    <div className="mb-6">
+                {/* Selected Edge Details */}
+                {selectedEdge && (
+                  <div className="mb-6">
                       <h3 className="mb-2 text-base font-semibold text-gray-800">Edge Details</h3>
-                      <textarea
+                            <textarea 
                         value={(selectedEdge.data as any)?.details || ''}
-                        onChange={handleEdgeDetailsChange}
+                              onChange={handleEdgeDetailsChange} 
                         className="h-24 w-full resize-none rounded border border-gray-300 p-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         placeholder="Enter edge details..."
-                      />
-                    </div>
-                  )}
-                </>
-              ) : (
+                            />
+                  </div>
+                )}
+              </>
+            ) : (
                 <div className="text-center text-sm text-gray-500">
                   Select a node or edge to view its details.
                 </div>
@@ -658,6 +851,21 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
           {/* Footer */}
           <div className="mt-auto border-t border-gray-200 p-3 text-xs text-gray-500">
             <div className="mb-2 flex justify-center gap-3">
+              {/* Explicit Home button */}
+              {onReturnToLanding && (
+              <button 
+                onClick={onReturnToLanding} 
+                  className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-50 text-gray-700"
+                  title="Return to Home"
+                >
+                  <div className="mb-1">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
+                    </svg>
+                  </div>
+                  <span className="text-xs font-medium">Home</span>
+              </button>
+              )}
               <button 
                 className="flex flex-col items-center justify-center p-2 rounded hover:bg-gray-50 text-gray-700"
                 title="Save as PNG"
@@ -686,7 +894,17 @@ const Sidebar: React.FC<SidebarProps> = (props) => {
               )}
             </div>
             <div className="text-center">
-              <span>Data Lineage UI v{version}</span>
+              {onReturnToLanding ? (
+              <button 
+                  onClick={onReturnToLanding}
+                  className="text-blue-500 hover:text-blue-700 hover:underline focus:outline-none"
+                  title="Return to Landing Page"
+                >
+                  Data Lineage UI v{version}
+              </button>
+              ) : (
+                <span>Data Lineage UI v{version}</span>
+              )}
             </div>
           </div>
         </>
