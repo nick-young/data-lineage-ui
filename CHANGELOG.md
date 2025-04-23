@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [0.1.6](https://github.com/nick-young/data-lineage-ui/compare/v0.1.5...v0.1.6) (2025-04-23)
+
+
+### Features
+
+* Add Text feature ([86bd95e](https://github.com/nick-young/data-lineage-ui/commit/86bd95e0fc7f09190992bb214da81e2cf255091c))
+
+
+### Bug Fixes
+
+* better resizing ([f685c00](https://github.com/nick-young/data-lineage-ui/commit/f685c00b4a921e4bfc1d0ac3fe96b2d8e58ea275))
+* layout nodes doesnt affect text or rectangles ([834aa40](https://github.com/nick-young/data-lineage-ui/commit/834aa4073acedefd78d7a0a116e79635fb99d465))
+* missing packages ([3ef5472](https://github.com/nick-young/data-lineage-ui/commit/3ef5472c9b477105887fe38d998e6914f469a3c7))
+* node resizing ([9b47ef5](https://github.com/nick-young/data-lineage-ui/commit/9b47ef5ae37e6e52109d8fe236ca19228936e7e8))
+
 ### [0.1.5](https://github.com/nick-young/data-lineage-ui/compare/v0.1.4...v0.1.5) (2025-04-22)
 
 
